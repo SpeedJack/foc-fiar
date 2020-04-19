@@ -1,0 +1,38 @@
+\documentclass[a4paper,12pt]{report}
+
+\usepackage{unipi}
+
+\class{Computer Engineering / Artificial Intelligence and Data Engineering}
+\course{Foundations of Cybersecurity}
+\title{Course Project}
+\subtitle{Secure implementation of Four-In-A-Row Online game}
+\authors{Daria Margherita Maggi, Niccolò Scatena, Gaetano Emanuele Valenti}
+\academicyear{2019/2020}
+
+\includeonly{%
+	abstract,
+	chapters/specs,
+	chapters/design,
+	chapters/keyxchg,
+	chapters/proto,
+	chapters/howto
+}
+
+\begin{document}
+
+\maketitle
+\include{abstract}
+
+\microtypesetup{protrusion=false}
+\tableofcontents
+\microtypesetup{protrusion=true}
+
+\include{chapters/specs}
+\include{chapters/design}
+\include{chapters/keyxchg}
+\include{chapters/proto}
+
+\appendix
+\include{chapters/howto}
+
+\end{document}

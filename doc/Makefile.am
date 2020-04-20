@@ -1,9 +1,9 @@
 LATEXMKOPTS = -pdf -cd -use-make -pdflatex="pdflatex -interaction=nonstopmode %O %S"
 
+if BUILD_DOC
 EXTRA_DIST = $(srcdir)/*.tex $(srcdir)/*.sty $(srcdir)/**/*.tex \
 	$(srcdir)/**/**/*.tex $(srcdir)/**/*.eps
 
-if BUILD_DOC
 doc_DATA = report.pdf
 
 .PHONY: FORCE_MAKE

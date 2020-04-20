@@ -26,10 +26,15 @@ AM_PROG_AR
 if test "x$latexdoc" = "xyes"; then
 	AC_PROG_LATEXMK
 	AC_PROG_PDFLATEX
+	AC_PROG_BIBTEX
 	AC_LATEX_CLASS_REPORT
 	AC_LATEX_PACKAGE_FONTENC
 	AC_LATEX_PACKAGE_AMSMATH
-	AC_PROG_BIBTEX
+	AC_LATEX_PACKAGES_REQUIRE([babel, inputenc, lmodern, csquotes,
+		microtype, geometry, etoolbox, suffix, minibox, pdflscape,
+		xcolor, graphicx, titlesec, caption, interval, array,
+		makecell, enumitem, listings, nameref, varioref, hyperref,
+		biblatex])
 fi
 AM_CONDITIONAL([BUILD_DOC], [test -n "$LATEXMK"])
 

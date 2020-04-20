@@ -30,13 +30,20 @@ mkdir build && cd build
 make
 ```
 
-Executables will be placed under the `client` and `server` directories.
+Executables will be placed under the `client` and `server` directories. Final
+report will be placed in `doc/report.pdf`. Note that the report will be
+generated always in the top level `doc` directory.
 
-### Documentation
+To disable the generation of the PDF, pass the `--disable-latex-doc` option to
+the `configure` call above.
+
+To clean the working directory:
 
 ```sh
-cd doc
-pdflatex report.tex
+make clean
 ```
+Or, more aggressively:
 
-Rerun `pdflatex` as needed (check output).
+```sh
+make maintainer-clean
+```

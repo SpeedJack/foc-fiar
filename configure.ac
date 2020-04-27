@@ -10,18 +10,27 @@ AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([foreign -Wall -Werror])
 
-# The user can disable building of the PDF of the manual, for example
-# if the required LaTeX packages are not installed
 AC_ARG_ENABLE([latex-doc],
 	[AS_HELP_STRING([--disable-latex-doc], [disable building the PDF
 	documentation from LaTeX source])],
 	[latexdoc=no],
 	[latexdoc=yes])
 
+AC_ARG_ENABLE([colors],
+	[AS_HELP_STRING([--disable-colors], [disable colored output when
+	 printing the game board])],
+	 [colors=no],
+	 [colors=yes])
+
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_RANLIB
 AM_PROG_AR
+
+if test "x$colors" = "xyes"; then
+	AC_DEFINE([ENABLE_COLORS], [1], [Define if colored output should be
+		enabled when printing the game board.])
+fi
 
 if test "x$latexdoc" = "xyes"; then
 	AC_PROG_LATEXMK
@@ -41,13 +50,14 @@ AM_CONDITIONAL([BUILD_DOC], [test -n "$LATEXMK"])
 # Checks for libraries.
 
 # Checks for header files.
-AC_CHECK_HEADERS([stddef.h])
+AC_CHECK_HEADERS([stddef.h stdlib.h string.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_CHECK_HEADER_STDBOOL
 AC_C_INLINE
 
 # Checks for library functions.
+AC_CHECK_FUNCS([memset strtoul])
 
 AC_CONFIG_FILES([Makefile
 		common/Makefile

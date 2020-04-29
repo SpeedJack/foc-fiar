@@ -1,4 +1,4 @@
-LATEXMKOPTS = -pdf -cd -use-make -pdflatex="pdflatex -interaction=nonstopmode %O %S"
+LATEXMKOPTS = -pdf -cd -use-make -f -pdflatex="pdflatex -interaction=nonstopmode %O %S"
 
 CLEANFILES = chapters/*.aux report.bbl report.run.xml **/*-converted-to.*
 

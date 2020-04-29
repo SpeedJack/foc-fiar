@@ -6,9 +6,13 @@
 #include <string.h>
 #include "client/connect4.h"
 
+#ifdef ENABLE_COLORS
 #define COLOR_RESET	"\033[0m"
 #define COLOR_BOLD_RED	"\033[1;31m"
 #define COLOR_BOLD_BLUE	"\033[1;34m"
+#else
+#define COLOR_RESET	""
+#endif /* ENABLE_COLORS */
 
 #define BOARD_ROWS	6
 #define BOARD_COLS	7
@@ -26,8 +30,24 @@
 			if (++count == 4) return true;		\
 		}
 
+static unsigned int total_inserts;
 static char current_player;
 static char board[BOARD_ROWS][BOARD_COLS];
+
+/* If ENABLE_COLORS is set, returns the color associated with the player. */
+static inline const char *get_color(char player)
+{
+#ifdef ENABLE_COLORS
+	switch (player) {
+		case PLAYER:
+			return COLOR_BOLD_BLUE;
+		case OPPONENT:
+			return COLOR_BOLD_RED;
+	}
+#endif /* ENABLE_COLORS */
+
+	return "";
+}
 
 /*
  * Checks the board for win. row and column must be set to the position of the
@@ -35,6 +55,9 @@ static char board[BOARD_ROWS][BOARD_COLS];
  */
 static bool check_four(int row, int col)
 {
+	if (total_inserts < 7)
+		return false;
+
 	char player = board[row][col];
 	int count;
 
@@ -71,28 +94,32 @@ static bool check_four(int row, int col)
 	return false;
 }
 
-/* Returns true if the board is full; false otherwise. */
-static bool is_board_full()
+/* Switches the current active player. */
+static inline void switch_player()
 {
-	for (int c = 0; c < BOARD_COLS; ++c)
-		if (board[0][c] == EMPTY)
-			return false;
-	return true;
+	current_player = c4_is_my_turn() ? OPPONENT : PLAYER;
 }
 
-/* If ENABLE_COLORS is set, returns the color associated with the player. */
-static inline const char *get_color(char player)
+/*
+ * Returns true if it's the turn of the user running the application;
+ * false otherwise.
+ */
+bool c4_is_my_turn()
 {
-#ifdef ENABLE_COLORS
-	switch (player) {
-		case PLAYER:
-			return COLOR_BOLD_BLUE;
-		case OPPONENT:
-			return COLOR_BOLD_RED;
-	}
-#endif /* ENABLE_COLORS */
+	return current_player == PLAYER;
+}
 
-	return "";
+/* Returns true if the board is full; false otherwise. */
+bool c4_board_full()
+{
+	return total_inserts == BOARD_ROWS*BOARD_COLS;
+}
+
+
+/* Returns the total number of disc inserted. */
+unsigned int c4_total_inserts()
+{
+	return total_inserts;
 }
 
 /*
@@ -102,6 +129,7 @@ static inline const char *get_color(char player)
 void c4_init(bool first_player)
 {
 	current_player = first_player ? PLAYER : OPPONENT;
+	total_inserts = 0;
 	memset(board, EMPTY, sizeof(board));
 }
 
@@ -127,20 +155,13 @@ void c4_print_board()
 }
 
 /*
- * Returns true if it's the turn of the user running the application;
- * false otherwise.
- */
-bool c4_is_my_turn()
-{
-	return current_player == PLAYER;
-}
-
-/*
  * Inserts a disc in the specified column. The insertion is made by the
  * currently active player.
  */
 enum c4_result c4_insert(int c)
 {
+	if (total_inserts == BOARD_ROWS*BOARD_COLS)
+		return FULL_BOARD;
 	if (c < 0 || c > BOARD_COLS)
 		return INVALID_COLUMN;
 	c--;
@@ -154,10 +175,37 @@ enum c4_result c4_insert(int c)
 	if (r == -1)
 		return FULL_COLUMN;
 
+	total_inserts++;
+
 	if (check_four(r, c))
 		return current_player == PLAYER ? PLAYER_WIN : OPPONENT_WIN;
 
-	current_player = current_player == PLAYER ? OPPONENT : PLAYER;
-	return is_board_full() ? OK_FULL_BOARD : OK;
+	switch_player();
+	return c4_board_full() ? OK_FULL_BOARD : OK;
+}
+
+/*
+ * Removes a disc from the specified column. This also switches back the current
+ * player. Returns true if the disc has been successfully removed; false
+ * otherwise.
+ */
+bool c4_remove(int c)
+{
+	if (total_inserts == 0)
+		return false;
+	c--;
+
+	int r;
+	for (r = 0; r < BOARD_ROWS; ++r)
+		if (board[r][c] != EMPTY) {
+			board[r][c] = EMPTY;
+			break;
+		}
+	if (r == BOARD_ROWS)
+		return false;
+
+	total_inserts--;
+	switch_player();
+	return true;
 }
 

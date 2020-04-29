@@ -33,8 +33,9 @@ int main(int argc, char **argv)
 
 	if (result > 3)
 		printf("WINNER: %s\n", result == PLAYER_WIN ? "YOU (X)" : "OPPONENT (O)");
-	if (result == OK_FULL_BOARD)
+	if (c4_board_full())
 		puts("FULL BOARD!"); /* USE SEED = 1588029060 */
+	printf("TOTAL MOVES: %d\n", c4_total_inserts());
 
 	printf("\nSEED: %u\n", (unsigned int) t);
 

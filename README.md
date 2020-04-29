@@ -15,35 +15,58 @@ Pisa.
 
 ### Compile
 
-If it's the first time run `autoreconf --install`, then:
+If it's the first time, or if any `Makefile.am` or `configure.ac` or any file
+under the `m4/` directory has changed, run:
 
 ```sh
+autoreconf --install
 ./configure
-make
 ```
 
-Or, to avoid to waste the source folder with object files and binaries:
+To disable the generation of the PDF, pass the `--disable-latex-doc` option to
+the `configure` call above:
 
 ```sh
-mkdir build && cd build
-../configure
+./configure --disable-latex-doc
+```
+
+When the source is configured, run:
+
+```sh
 make
 ```
 
 Executables will be placed under the `client` and `server` directories. Final
-report will be placed in `doc/report.pdf`. Note that the report will be
-generated always in the top level `doc` directory.
+report will be placed in `doc/report.pdf`.
 
-To disable the generation of the PDF, pass the `--disable-latex-doc` option to
-the `configure` call above.
+#### VPATH Compile
+
+Alternatively to the above, to avoid to waste the source folder with object
+files and binaries:
+
+```sh
+autoreconf --install
+mkdir build && cd build
+../configure
+make
+```
+(`configure` must be run from the `build/` directory)
+
+Note that the report will be generated always in the top level `doc` directory.
+
+#### Clean
 
 To clean the working directory:
 
 ```sh
 make clean
 ```
+
 Or, more aggressively:
 
 ```sh
 make maintainer-clean
 ```
+
+After a `maintainer-clean` you need to rerun `configure` again to rebuild the
+project.

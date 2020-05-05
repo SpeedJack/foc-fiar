@@ -1,5 +1,5 @@
-#ifndef CONNECT4_H
-#define CONNECT4_H
+#ifndef CLIENT_CONNECT4_H
+#define CLIENT_CONNECT4_H
 
 #include <stdbool.h>
 
@@ -20,4 +20,4 @@ extern bool c4_board_full();
 extern unsigned int c4_total_inserts();
 extern enum c4_result c4_insert(int c);
 
-#endif /* CONNECT4_H */
+#endif /* CLIENT_CONNECT4_H */

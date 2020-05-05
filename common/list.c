@@ -48,4 +48,3 @@ int list_count(const struct list_head *head)
 		count++;
 	return count;
 }
-

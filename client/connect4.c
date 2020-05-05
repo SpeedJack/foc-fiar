@@ -208,4 +208,3 @@ bool c4_remove(int c)
 	switch_player();
 	return true;
 }
-

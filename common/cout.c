@@ -44,4 +44,3 @@ void cout_printf_error(const char *format, ...)
 	__reset_color();
 	fputs("\n", stderr);
 }
-

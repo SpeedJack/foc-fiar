@@ -1,5 +1,5 @@
-#ifndef _COMMON_LIST_H
-#define _COMMON_LIST_H
+#ifndef COMMON_LIST_H
+#define COMMON_LIST_H
 
 #include <stdbool.h>
 
@@ -100,4 +100,4 @@ static inline bool list_empty(const struct list_head *head)
 	return head->next == head;
 }
 
-#endif
+#endif /* COMMON_LIST_H */

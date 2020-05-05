@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include "list.h"
 
 static inline void __list_add(struct list_head *new,

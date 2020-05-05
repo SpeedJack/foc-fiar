@@ -1,7 +1,6 @@
 #ifndef _COMMON_LIST_H
 #define _COMMON_LIST_H
 
-#include <stddef.h>
 #include <stdbool.h>
 
 #define LIST_HEAD(name) \

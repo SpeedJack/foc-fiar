@@ -3,6 +3,11 @@
 #include <string.h>
 #include "client/cin.h"
 
+/*
+ * Flushes the stdin buffer by reading all characters remaining in it and
+ * returns the total number of characters read. The caller must be sure that
+ * something is in the buffer, or the function will stuck on getchar() call.
+ */
 unsigned int cin_flush_stdin()
 {
 	char c;
@@ -13,6 +18,13 @@ unsigned int cin_flush_stdin()
 	return len;
 }
 
+/*
+ * Reads a line from stdin without the terminating newline. The functions saves
+ * the string read in the memory area pointed by buffer and returns the total
+ * number of characters typed (may be greater than size). If more that size
+ * characters are read, the input is truncated and the rest of stdin is flushed.
+ * The function guarantees that the resulting string is always null-terminated.
+ */
 int cin_read_line(char *buffer, int size)
 {
 	if (size <= 0 || fgets(buffer, size, stdin) == NULL)
@@ -25,6 +37,7 @@ int cin_read_line(char *buffer, int size)
 	return len - 1;
 }
 
+/* Reads a non-blank character from stdin and flushes the rest of the buffer. */
 char cin_read_char()
 {
 	int c;

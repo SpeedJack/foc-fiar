@@ -1,5 +1,5 @@
-#include "random.h"
-#include "digest.h"
+//#include "random.h"
+//#include "digest.h"
 #include <stdio.h>
 #include <string.h>
 #include <openssl/hmac.h>
@@ -43,6 +43,7 @@ unsigned int gcm_decrypt(const char *ciphertext, unsigned int ciphertext_len, ch
   unsigned char key[128];
   unsigned char iv[96];
   unsigned char tag[16];
+  unsigned int plaintext_len;
   int len;
 
   memcpy(key, digest, sizeof(key));
@@ -53,7 +54,7 @@ unsigned int gcm_decrypt(const char *ciphertext, unsigned int ciphertext_len, ch
 	if(1 != EVP_DecryptUpdate(ctx, decryptedtext, &len, ciphertext, ciphertext_len))
     handleErrors();
 	plaintext_len += len;
-	if(1 != VP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, tag))
+	if(1 != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, tag))
     handleErrors();
 
 	int ret = EVP_DecryptFinal_ex(ctx, decryptedtext + len, &len);

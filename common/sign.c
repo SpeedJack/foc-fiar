@@ -3,7 +3,8 @@
 EVP_PKEY *peerpubkey;
 EVP_PKEY *privkey;
 
-char *sign(const char *input)
+
+char *sign (unsigned char *plaintext, int plaintext_len)
 {
 }
 

@@ -63,19 +63,19 @@ bool dh_run()
 {
   EVP_PKEY *params;
   if (NULL == (params =  EVP_PKEY_new())){
-    handleErrors();
+    puts("Error");
   }
   DH *temp = get_dh2048();
   if( 1 != EVP_PKEY_set1_DH(params,temp))
-    handleErrors();
+    puts("Error");
   DH_free(temp);
 
   EVP_PKEY_CTX *DHCtx;
-  if (!(DHCtx = EVP_PKEY_CTX_new(params, NULL))) handleErrors();
+  if (!(DHCtx = EVP_PKEY_CTX_new(params, NULL))) puts("Error");
 
   EVP_PKEY *my_dhkey = EVP_PKEY_new();
-  if (1 != EVP_PKEY_keygen_init(DHCtx))  handleErrors();
-  if (1 != EVP_PKEY_keygen(DHCtx, &my_dhkey)) handleErrors();
+  if (1 != EVP_PKEY_keygen_init(DHCtx))  puts("Error");
+  if (1 != EVP_PKEY_keygen(DHCtx, &my_dhkey)) puts("Error");
 
   char filename[32];
 	printf("output file name: ");
@@ -94,14 +94,15 @@ bool dh_run()
   EVP_PKEY *peer_pubkey = PEM_read_PUBKEY(fp, NULL, NULL, NULL);
   fclose(fp);
 
-  EVP_PKEY_CTX *ctx_drv = EVP_PKEY_CTX_new(my_dhkey, NULL);
-  EVP_PKEY_derive_init(ctx_drv);
-  EVP_PKEY_derive_set_peer(ctx_drv, peer_pubkey);
+  if(!EVP_PKEY_CTX *ctx_drv = EVP_PKEY_CTX_new(my_dhkey, NULL)) puts("Error");
+  if(EVP_PKEY_derive_init(ctx_drv)<=0) puts("Error");
+  if(EVP_PKEY_derive_set_peer(ctx_drv, peer_pubkey)<=0) puts("Error");
 
   unsigned char *secret;
   size_t secretlen;
   EVP_PKEY_derive(ctx_drv, NULL, &secretlen);
   secret = (unsigned char *)malloc(secretlen);
+  if(!secret) puts("Error")
   EVP_PKEY_derive(ctx_drv, secret, &secretlen);
 
   EVP_PKEY_CTX_free(DHCtx);

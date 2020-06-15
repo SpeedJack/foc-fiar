@@ -22,15 +22,15 @@ unsigned int gcm_encrypt(const char *plaintext, unsigned int plaintext_len, char
     memcpy(iv, digest+128, sizeof(iv));
 
     if(1 != EVP_EncryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, key, iv))
-      handleErrors();
+      puts("Error");
     if(1 != EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, plaintext_len))
-      handleErrors();
+      puts("Error");
   	ciphertext_len += len;
   	if(1 != EVP_EncryptFinal_ex(ctx, ciphertext + len, &len))
-      	 handleErrors();
+      puts("Error");
     ciphertext_len += len;
   	if(1 != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, tag))
-      handleErrors();
+      puts("Error");
   	EVP_CIPHER_CTX_free(ctx);
 
     return 0;
@@ -50,12 +50,12 @@ unsigned int gcm_decrypt(const char *ciphertext, unsigned int ciphertext_len, ch
   memcpy(iv, digest+128, sizeof(iv));
 
 	if(1 != EVP_DecryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, key, iv))
-    handleErrors();
+    puts("Error");
 	if(1 != EVP_DecryptUpdate(ctx, decryptedtext, &len, ciphertext, ciphertext_len))
-    handleErrors();
+    puts("Error");
 	plaintext_len += len;
 	if(1 != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, tag))
-    handleErrors();
+    puts("Error");
 
 	int ret = EVP_DecryptFinal_ex(ctx, decryptedtext + len, &len);
 	EVP_CIPHER_CTX_free(ctx);

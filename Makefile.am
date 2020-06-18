@@ -1,1 +1,1 @@
-SUBDIRS = common client doc
+SUBDIRS = common server client doc

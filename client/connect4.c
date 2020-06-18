@@ -2,9 +2,9 @@
 #include <config.h>
 #endif /* HAVE_CONFIG_H */
 
+#include "client/connect4.h"
 #include <stdio.h>
 #include <string.h>
-#include "client/connect4.h"
 
 #ifdef ENABLE_COLORS
 #define COLOR_RESET	"\033[0m"

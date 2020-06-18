@@ -4,27 +4,25 @@
 #define PACKAGE_STRING "connect-4 1.0.0"
 #endif /* HAVE_CONFIG_H */
 
+#include "client/cin.h"
+#include "client/connect4.h"
+#include "cout.h"
+#include "stringop.h"
 #include <arpa/inet.h>
+#include <netdb.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "client/cin.h"
-#include "client/connect4.h"
-#include "cout.h"
-#include "stringop.h"
 
 #define USAGE_STRING	\
 	"Usage: %s [-h] [-v] [-i <num>] [-H <host>] [-p <port>] [-l <port>]"
 
-/*
- * Prints an error and exits with EXIT_FAILURE. If errno is non-zero,
- * the function appends a description of the error code to the message.
- */
-static void panic(const char *errstr, int errno)
+/* Prints an error and exits with EXIT_FAILURE. */
+static void panic(const char *errstr)
 {
-	cout_print_error(errstr, errno);
+	cout_print_error(errstr);
 	exit(EXIT_FAILURE);
 }
 
@@ -48,14 +46,12 @@ static inline void print_help(const char *cmdname)
 		"-p:\tspecifies the server port\n"
 		"-l:\tspecifies the p2p listening port\n",
 		cmdname);
-	exit(EXIT_SUCCESS);
 }
 
-/* Prints package name and version, then it exits. */
+/* Prints package name and version, then exits. */
 static inline void print_version()
 {
 	puts(PACKAGE_STRING " (client)");
-	exit(EXIT_SUCCESS);
 }
 
 /* Client entry-point. */
@@ -71,8 +67,10 @@ int main(int argc, char **argv)
 		switch (opt) {
 		case 'h':
 			print_help(argv[0]);
+			return 0;
 		case 'v':
 			print_version();
+			return 0;
 		case 'i':
 			if (!string_to_int(optarg, &force_ipv)
 					|| (force_ipv != 4 && force_ipv != 6))
@@ -82,7 +80,7 @@ int main(int argc, char **argv)
 		case 'H':
 			strncpy(server_addr, optarg, 254);
 			if (server_addr[253] != '\0')
-				panic("Server address is too long.", 0);
+				panic("Server address is too long.");
 			break;
 		case 'p':
 			if (!string_to_uint16(optarg, &server_port))

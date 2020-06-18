@@ -1,9 +1,10 @@
+#include "stringop.h"
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
-#include "stringop.h"
 
 /*
  * Removes all blank characters at the beginning and the end of the specified
@@ -11,6 +12,7 @@
  */
 void string_trim(char **pstr)
 {
+	assert(pstr && *pstr);
 	char *str = *pstr;
 	while (isspace((int)*str)) ++(str);
 	*pstr = str;
@@ -30,6 +32,7 @@ void string_trim(char **pstr)
  */
 bool string_to_long(const char *str, long int *dest)
 {
+	assert(str && dest);
 	char *endptr = NULL;
 
 	errno = 0;
@@ -40,6 +43,7 @@ bool string_to_long(const char *str, long int *dest)
 
 bool string_to_uint16(const char *str, uint16_t *dest)
 {
+	assert(str && dest);
 	long int value;
 	if (!string_to_long(str, &value))
 		return false;
@@ -49,9 +53,19 @@ bool string_to_uint16(const char *str, uint16_t *dest)
 
 bool string_to_int(const char *str, int *dest)
 {
+	assert(str && dest);
 	long int value;
 	if (!string_to_long(str, &value))
 		return false;
 	*dest = value;
 	return value >= INT_MIN && value <= INT_MAX;
+}
+
+bool string_contains(const char *haystack, const char needle)
+{
+	assert(haystack);
+	for (const char *c = haystack; *c != '\0'; c++)
+		if (*c == needle)
+			return true;
+	return false;
 }

@@ -1,7 +1,11 @@
+#include "random.h"
+
 void rand_init()
 {
 }
 
-char *rand_generate_nonce(const unsigned int length)
+unsigned int random_nonce()
 {
+	//TODO
+	return 0;
 }

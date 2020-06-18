@@ -30,6 +30,11 @@ the `configure` call above:
 ./configure --disable-latex-doc
 ```
 
+For debugging, use:
+```sh
+./configure --enable-debug --enable-warnings --enable-assertions
+```
+
 When the source is configured, run:
 
 ```sh

@@ -1,7 +1,10 @@
+#include "client/cin.h"
+#include "cout.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
-#include "client/cin.h"
+#include <termios.h>
+#include <unistd.h>
 
 /*
  * Flushes the stdin buffer by reading all characters remaining in it and
@@ -51,4 +54,23 @@ char cin_read_char()
 
 	cin_flush_stdin();
 	return (char)c;
+}
+
+char *ask_password(const char *prompt)
+{
+	static char buffer[256];
+	struct termios tio;
+	printf("%s: ", prompt);
+	fflush(stdout);
+	tcgetattr(STDIN_FILENO, &tio);
+	tio.c_lflag &= ~ECHO;
+	tcsetattr(STDIN_FILENO, TCSANOW, &tio);
+	char *pbuf = buffer;
+	if (cin_read_line(buffer, 256) > 256) {
+		cout_print_error("Passwords longer than 256 characters are not supported.");
+		pbuf = NULL;
+	}
+	tio.c_lflag &= ECHO;
+	tcsetattr(STDIN_FILENO, TCSANOW, &tio);
+	return pbuf;
 }

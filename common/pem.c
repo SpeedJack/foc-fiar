@@ -6,6 +6,7 @@
 
 EVP_PKEY *pem_read_privkey(const char *filename, pem_password_cb *cb)
 {
+	assert(filename);
 	FILE *fp = fopen(filename, "rb");
 	if (!fp) {
 		REPORT_ERR(EFILE, "fopen() failed.");
@@ -13,15 +14,14 @@ EVP_PKEY *pem_read_privkey(const char *filename, pem_password_cb *cb)
 	}
 	EVP_PKEY *privkey = PEM_read_PrivateKey(fp, NULL, cb, NULL);
 	fclose(fp);
-	if (!privkey) {
+	if (!privkey)
 		REPORT_ERR(EOSSL, "PEM_read_PrivateKey() returned NULL.");
-		return NULL;
-	}
 	return privkey;
 }
 
 EVP_PKEY *pem_read_pubkey(const char *filename)
 {
+	assert(filename);
 	FILE *fp = fopen(filename, "rb");
 	if (!fp) {
 		REPORT_ERR(EFILE, "fopen() failed.");
@@ -29,11 +29,24 @@ EVP_PKEY *pem_read_pubkey(const char *filename)
 	}
 	EVP_PKEY *pubkey = PEM_read_PUBKEY(fp, NULL, NULL, NULL);
 	fclose(fp);
-	if (!pubkey) {
+	if (!pubkey)
 		REPORT_ERR(EOSSL, "PEM_read_PUBKEY() returned NULL.");
+	return pubkey;
+}
+
+X509 *pem_read_x509_file(const char *filename)
+{
+	assert(filename);
+	FILE *fp = fopen(filename, "rb");
+	if (!fp) {
+		REPORT_ERR(EFILE, "fopen() failed.");
 		return NULL;
 	}
-	return pubkey;
+	X509 *cert = PEM_read_X509(fp, NULL, NULL, NULL);
+	fclose(fp);
+	if (!cert)
+		REPORT_ERR(EOSSL, "PEM_read_X509() returned NULL.");
+	return cert;
 }
 
 unsigned char *pem_serialize_pubkey(EVP_PKEY *key, size_t *len)

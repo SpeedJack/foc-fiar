@@ -12,6 +12,7 @@ enum error_code {
 	EINVACK,
 	EINVSIG,
 	EGCM,
+	EINVCERT,
 	EOSSL,
 	EUNSPEC
 };

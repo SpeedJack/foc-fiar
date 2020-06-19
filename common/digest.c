@@ -1,6 +1,6 @@
 #include "digest.h"
+#include "assertions.h"
 #include "error.h"
-#include <assert.h>
 
 struct digest_ctx {
 	EVP_PKEY *privkey;
@@ -48,6 +48,12 @@ DIGEST_CTX *digest_ctx_new(EVP_PKEY *privkey, EVP_PKEY *peerkey)
 	return ctx;
 }
 
+void digest_ctx_set_peerkey(DIGEST_CTX *ctx, EVP_PKEY *peerkey)
+{
+	assert(ctx);
+	ctx->peerkey = peerkey;
+}
+
 void digest_ctx_free(DIGEST_CTX *ctx)
 {
 	free(ctx);
@@ -56,6 +62,7 @@ void digest_ctx_free(DIGEST_CTX *ctx)
 unsigned char *digest_sign(const DIGEST_CTX *dctx, const unsigned char *msg,
 	size_t len, size_t *slen)
 {
+	assert(dctx && msg && slen);
 	unsigned char *sig = NULL;
 	EVP_MD_CTX *ctx = EVP_MD_CTX_new();
 	if (!ctx) {
@@ -93,6 +100,9 @@ clean_return:
 bool digest_verify(const DIGEST_CTX *dctx, const unsigned char *msg, size_t len,
 	const unsigned char *sig, size_t slen)
 {
+	if (!dctx || !dctx->peerkey)
+		return false;
+	assert(msg && sig);
 	EVP_MD_CTX *ctx = EVP_MD_CTX_new();
 	if (!ctx) {
 		REPORT_ERR(EOSSL, "EVP_MD_CTX_new() returned NULL.");

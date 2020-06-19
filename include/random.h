@@ -1,7 +1,9 @@
 #ifndef COMMON_RANDOM_H
 #define COMMON_RANDOM_H
 
-extern void rand_init();
-extern unsigned int random_nonce();
+#include <stdint.h>
+
+extern void random_init();
+extern uint32_t random_nonce();
 
 #endif /* COMMON_RANDOM_H */

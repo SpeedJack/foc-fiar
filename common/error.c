@@ -1,7 +1,6 @@
 #include "error.h"
 #include "cout.h"
 #include <openssl/err.h>
-#include <stdbool.h>
 #include <errno.h>
 #include <string.h>
 
@@ -17,11 +16,13 @@ static const char *errstr[] = {
 	[EALLOC]	= "[EALLOC] An alloc operation failed. Out of memory?",
 	[EFILE]		= "[EFILE] Error while opening a file.",
 	[ENET]		= "[ENET] Network error.",
+	[EINVMSG]	= "[EINVMSG] Received an invalid message.",
 	[EREPLAY]	= "[EREPLAY] Received a replayed message. You may be under attack!",
 	[EINVACK]	= "[EINVACK] Received an invalid ACK message.",
 	[EINVSIG]	= "[EINVSIG] Received a message signed with an invalid signature.",
 	[EGCM]		= "[EGCM] Error while encrypting/decrypting a GCM message.",
 	[EINVCERT]	= "[EINVCERT] Server certificate is not valid.",
+	[EPEERERR]	= "[EPEERERR] Received an error message from peer.",
 	[EOSSL]		= "[EOSSL] Unknown OpenSSL error.",
 	[EUNSPEC]	= "[EUNSPEC] Unknown error."
 };
@@ -105,12 +106,7 @@ void error_print(void)
 	error_clear();
 }
 
-void error_enable_autoprint(void)
+void error_set_autoprint(bool value)
 {
-	autoprint = true;
-}
-
-void error_disable_autoprint(void)
-{
-	autoprint = false;
+	autoprint = value;
 }

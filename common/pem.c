@@ -1,7 +1,7 @@
 #include "pem.h"
+#include "assertions.h"
 #include "error.h"
 #include <openssl/bio.h>
-#include <assert.h>
 #include <string.h>
 
 EVP_PKEY *pem_read_privkey(const char *filename, pem_password_cb *cb)

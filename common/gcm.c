@@ -1,8 +1,8 @@
 #include "gcm.h"
+#include "assertions.h"
 #include "digest.h"
 #include "error.h"
 #include <openssl/evp.h>
-#include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>

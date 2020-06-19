@@ -1,6 +1,6 @@
 #include "server/x509.h"
+#include "assertions.h"
 #include "error.h"
-#include <assert.h>
 
 unsigned char *x509_serialize_cert(X509 *cert, size_t *len)
 {

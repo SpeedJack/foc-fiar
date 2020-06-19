@@ -1,5 +1,5 @@
 #include "list.h"
-#include <assert.h>
+#include "assertions.h"
 #include <stddef.h>
 
 /* Adds a new entry between two entries. */

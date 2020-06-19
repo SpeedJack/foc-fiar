@@ -1,11 +1,11 @@
 #include "dh.h"
+#include "assertions.h"
 #include "digest.h"
 #include "error.h"
 #include "pem.h"
 #include <openssl/dh.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
-#include <assert.h>
 
 struct dh_ctx {
 	EVP_PKEY *privkey;

@@ -1,8 +1,8 @@
 #include "client/x509.h"
+#include "assertions.h"
 #include "error.h"
 #include <openssl/pem.h>
 #include <openssl/x509_vfy.h>
-#include <assert.h>
 #include <string.h>
 
 static const char *subject_name = "CN=cybersec";

@@ -1,5 +1,5 @@
 #include "stringop.h"
-#include <assert.h>
+#include "assertions.h"
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>

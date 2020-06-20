@@ -100,12 +100,12 @@ void net_close(int socket)
 	close(socket);
 }
 
-bool net_recv(int socket, void *buf, size_t len, int flags)
+bool net_recv(int socket, void *buf, size_t len)
 {
 	size_t read = 0;
 	ssize_t ret;
 	while (read < len) {
-		ret = recvfrom(socket, buf, len, flags, NULL, 0);
+		ret = recvfrom(socket, buf, len, 0, NULL, 0);
 		if (ret == -1) {
 			REPORT_ERR(ENET, "recvfrom() failed.");
 			return false;
@@ -115,13 +115,12 @@ bool net_recv(int socket, void *buf, size_t len, int flags)
 	return true;
 }
 
-bool net_sendto(int socket, const void *buf, size_t len, int flags,
-	struct addrinfo *info)
+bool net_send(int socket, const void *buf, size_t len, struct addrinfo *info)
 {
 	size_t sent = 0;
 	ssize_t ret;
 	while (sent < len) {
-		ret = sendto(socket, buf, len, flags,
+		ret = sendto(socket, buf, len, 0,
 			info ? info->ai_addr : NULL,
 			info ? sizeof(info->ai_addr) : 0);
 		if (ret == -1) {
@@ -131,9 +130,4 @@ bool net_sendto(int socket, const void *buf, size_t len, int flags,
 		sent += ret;
 	}
 	return true;
-}
-
-bool net_send(int socket, const void *buf, size_t len, int flags)
-{
-	return net_sendto(socket, buf, len, flags, NULL);
 }

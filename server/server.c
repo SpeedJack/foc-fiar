@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "server/proto.h"
 #include "cout.h"
 #include "error.h"
@@ -8,34 +11,27 @@
 
 int main(int argc, char **argv)
 {
+#ifdef DEBUG_CODE
+	cout_enable_mem_debug();
+#endif /* DEBUG_CODE */
+	error_enable_autoprint();
 	X509* cert = pem_read_x509_file("server_cert.pem");
-	if (!cert) {
-		error_print();
+	if (!cert)
 		return 1;
-	}
 	EVP_PKEY *privkey = pem_read_privkey("server_privkey.pem", NULL);
-	if (!privkey) {
-		error_print();
+	if (!privkey)
 		return 1;
-	}
 	int sock = net_listen(8888, SOCK_STREAM);
-	if (sock == -1) {
-		error_print();
+	if (sock == -1)
 		return 1;
-	}
 	int conn = net_accept(sock);
-	if (conn == -1) {
-		error_print();
+	if (conn == -1)
 		return 1;
-	}
 	PROTO_CTX *ctx = proto_ctx_new(conn, NULL, privkey, NULL);
-	if (!ctx) {
-		error_print();
+	if (!ctx)
 		return 1;
-	}
 	struct client_hello *hello = proto_recv_hello(ctx);
 	if (!hello) {
-		error_print();
 		proto_clear_last_error();
 		return 1;
 	}
@@ -46,32 +42,30 @@ int main(int argc, char **argv)
 	strcpy(filename + len, ".pem");
 	EVP_PKEY *peerkey = pem_read_pubkey(filename);
 	OPENSSL_free(filename);
-	if (!peerkey) {
-		error_print();
+	if (!peerkey)
 		return 1;
-	}
 	proto_ctx_set_peerkey(ctx, peerkey);
-	if (!proto_verify_last_msg(ctx)) {
-		error_print();
+	if (!proto_verify_last_msg(ctx))
 		return 1;
-	}
-	if (!proto_send_cert(ctx, cert)) {
-		error_print();
+	if (!proto_send_cert(ctx, cert))
 		return 1;
-	}
-	if (!proto_send_hello(ctx, hello->username, hello->nonce)) {
-		error_print();
+	if (!proto_send_hello(ctx, hello->username, hello->nonce))
 		return 1;
-	}
-	if (!proto_run_dh(ctx)) {
-		error_print();
+	OPENSSL_free(hello);
+	if (!proto_run_dh(ctx))
 		return 1;
-	}
 	char *dummymsg = "msg msg msg";
-	if (!proto_send_gcm(ctx, dummymsg, strlen(dummymsg) + 1)) {
-		error_print();
+	if (!proto_send_gcm(ctx, dummymsg, strlen(dummymsg) + 1))
 		return 1;
-	}
+	size_t msglen;
+	char *buf = (char *)proto_recv_gcm(ctx, &msglen);
+	if (!buf)
+		return 1;
+	printf("Message: %s\nLen: %lu\n", buf, msglen);
+	OPENSSL_free(buf);
 	proto_ctx_free(ctx);
+#ifdef DEBUG_CODE
+	cout_print_alloc_counts();
+#endif /* DEBUG_CODE */
 	return 0;
 }

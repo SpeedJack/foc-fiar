@@ -1,8 +1,16 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif /* HAVE_CONFIG_H */
+
+#ifdef DEBUG_CODE
+#include "cout.h"
+#define SHA256_DIGEST_LENGTH		32
+#endif /* DEBUG_CODE */
+
 #include "client/proto.h"
 #include "assertions.h"
 #include "dh.h"
 #include "error.h"
-#include "proto.h"
 #include "random.h"
 #include <string.h>
 
@@ -77,7 +85,8 @@ X509 *proto_recv_cert(PROTO_CTX *ctx)
 	struct server_cert *msg = recv_message(ctx, SERVER_CERT, NULL, proto_recv);
 	if (!msg)
 		return NULL;
-	X509* cert = x509_deserialize(msg->cert, msg->len);
+	X509* cert = x509_deserialize(msg->cert, (size_t)msg->len);
+	OPENSSL_free(msg);
 	return cert;
 }
 
@@ -100,7 +109,7 @@ bool proto_run_dh(PROTO_CTX *ctx)
 	msg->type = DHKEY;
 	struct dhkey *my = (struct dhkey *)msg->body;
 	my->nonce = random_nonce();
-	my->nonce = pklen;
+	my->len = (uint32_t)pklen;
 	memcpy(my->key, pk, pklen);
 	OPENSSL_free(pk);
 	if (!proto_send_sign(ctx, msg, MSG_SIZE_OF(struct dhkey) + pklen)) {
@@ -116,14 +125,20 @@ bool proto_run_dh(PROTO_CTX *ctx)
 	}
 	if (peer->nonce != my->nonce) {
 		REPORT_ERR(EINVMSG, "Received a signed message with a wrong nonce.");
+		OPENSSL_free(peer);
 		OPENSSL_free(msg);
 		dh_ctx_free(dhctx);
 		return false;
 	}
 	OPENSSL_free(msg);
-	unsigned char *secret = dh_derive_secret(dhctx, peer->key, peer->len);
-	if (secret)
+	unsigned char *secret = dh_derive_secret(dhctx, peer->key, (size_t)peer->len);
+	OPENSSL_free(peer);
+	if (secret) {
+#ifdef DEBUG_CODE
+		cout_print_mem("DIFFIE-HELLMAN HASHED SECRET", secret, SHA256_DIGEST_LENGTH);
+#endif /* DEBUG_CODE */
 		proto_ctx_set_secret(ctx, secret);
+	}
 	dh_ctx_free(dhctx);
 	return !!secret;
 }

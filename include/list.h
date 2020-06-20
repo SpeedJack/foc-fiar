@@ -20,8 +20,9 @@ struct list_head {
  * return; member is the name of the list head member in the structure.
  */
 #define list_entry(ptr, type, member) ({			\
-	const struct list_head *__lptr = (ptr);	\
-	(type *)( (char *)__lptr - offsetof(type, member) ); })
+	const struct list_head *__lptr = (ptr);			\
+	(type *)( (char *)__lptr - offsetof(type, member) );	\
+	})
 
 /*
  * Returns the first element of the list specified by ptr. type is the type to

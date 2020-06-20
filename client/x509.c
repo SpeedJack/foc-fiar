@@ -5,7 +5,7 @@
 #include <openssl/x509_vfy.h>
 #include <string.h>
 
-static const char *subject_name = "CN=cybersec";
+static const char *subject_name = "/C=IT/CN=Server";
 
 X509 *x509_deserialize(const unsigned char *data, size_t len)
 {
@@ -29,6 +29,15 @@ X509_CRL *x509_read_crl(const char *filename)
 	if (!crl)
 		REPORT_ERR(EOSSL, "PEM_read_X509_crl() returned NULL.");
 	return crl;
+}
+
+EVP_PKEY *x509_extract_pubkey(const X509 *cert)
+{
+	assert(cert);
+	EVP_PKEY *pubkey = X509_get0_pubkey(cert);
+	if (!pubkey)
+		REPORT_ERR(EOSSL, "X509_get_pubkey() returned NULL.");
+	return pubkey;
 }
 
 char *x509_get_name_oneline(const X509 *cert)

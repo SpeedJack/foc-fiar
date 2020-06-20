@@ -3,7 +3,7 @@
 
 #include "server/x509.h"
 #include "messages.h"
-#include "../proto.h"
+#include "protocol.h"
 
 extern struct error *proto_get_last_error();
 extern void proto_clear_last_error();

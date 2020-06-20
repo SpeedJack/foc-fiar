@@ -6,7 +6,7 @@
 #include "cout.h"
 #endif /* DEBUG_CODE */
 
-#include "proto.h"
+#include "protocol.h"
 #include "assertions.h"
 #include "digest.h"
 #include "error.h"
@@ -40,7 +40,6 @@ struct proto_ctx {
 	uint32_t last_recv_nonce;
 	uint32_t last_send_nonce;
 	struct msg *last_recv_msg;
-	size_t last_recv_msg_size;
 };
 
 typedef void *transform_cb(PROTO_CTX *ctx, const void *data, size_t len,
@@ -68,7 +67,6 @@ PROTO_CTX *proto_ctx_new(int socket, struct addrinfo *peeraddr,
 	ctx->last_recv_nonce = 0;
 	ctx->last_send_nonce = 0;
 	ctx->last_recv_msg = NULL;
-	ctx->last_recv_msg_size = 0;
 	return ctx;
 }
 
@@ -183,6 +181,7 @@ static void *encrypt_msg(PROTO_CTX *ctx, const void *data, size_t len,
 		nextct = encrypt_single_msg(ctx, msg + FIRST_MSG_SIZE,
 			*outlen - FIRST_MSG_SIZE, &secondsize);
 		if (!nextct) {
+			OPENSSL_free(ct);
 			OPENSSL_free(msg);
 			return NULL;
 		}
@@ -197,8 +196,11 @@ static void *encrypt_msg(PROTO_CTX *ctx, const void *data, size_t len,
 		return NULL;
 	}
 	memcpy(buf, ct, firstsize);
-	if (nextct)
+	OPENSSL_free(ct);
+	if (nextct) {
 		memcpy(buf + firstsize, nextct, secondsize);
+		OPENSSL_free(nextct);
+	}
 	return buf;
 }
 
@@ -326,7 +328,10 @@ bool proto_verify_last_msg(PROTO_CTX *ctx)
 	if (!sig)
 		return false;
 	bool res = digest_verify(ctx->dctx, (unsigned char *)ctx->last_recv_msg,
-			ctx->last_recv_msg_size, sig, len);
+		ctx->last_recv_msg->header.payload_size + sizeof(struct msg_header),
+		sig, len);
+	if (!res && error_get() == ENOERR)
+		REPORT_ERR(EINVSIG, NULL);
 	OPENSSL_free(sig);
 	return res;
 }
@@ -471,7 +476,6 @@ void proto_clear_last_recv_msg(PROTO_CTX *ctx)
 {
 	OPENSSL_free(ctx->last_recv_msg);
 	ctx->last_recv_msg = NULL;
-	ctx->last_recv_msg_size = 0;
 }
 
 void *proto_recv(PROTO_CTX *ctx, size_t *len)
@@ -481,7 +485,6 @@ void *proto_recv(PROTO_CTX *ctx, size_t *len)
 	if (!msg)
 		return NULL;
 	ctx->last_recv_msg = msg;
-	ctx->last_recv_msg_size = *len;
 	return msg->payload;
 }
 
@@ -492,12 +495,10 @@ void *proto_recv_verify(PROTO_CTX *ctx, size_t *len)
 	if (!msg)
 		return NULL;
 	ctx->last_recv_msg = msg;
-	ctx->last_recv_msg_size = *len;
 	return proto_verify_last_msg(ctx) ? msg->payload : NULL;
 }
 
 void *proto_recv_gcm(PROTO_CTX *ctx, size_t *len)
 {
-	proto_clear_last_recv_msg(ctx);
 	return recv_encrypted_msg(ctx, len);
 }

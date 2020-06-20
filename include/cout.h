@@ -13,7 +13,8 @@ extern void cout_printf_error(const char *format, ...);
 extern void cout_print_error(const char *errstr);
 extern void cout_print_mem(const char *id, const void *mem, size_t len);
 #ifdef DEBUG_CODE
-extern void cout_enable_mem_debug();
+extern void cout_enable_mem_debug(void);
+extern void cout_print_alloc_counts(void);
 #endif /* DEBUG_CODE */
 
 #endif /* COMMON_COUT_H */

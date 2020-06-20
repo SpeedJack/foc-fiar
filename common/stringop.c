@@ -69,3 +69,16 @@ bool string_contains(const char *haystack, const char needle)
 			return true;
 	return false;
 }
+
+bool string_starts_with(const char *str, const char *prefix)
+{
+	if (!str || !prefix)
+		return false;
+	size_t prefixlen = strlen(prefix);
+	if (strlen(str) < prefixlen)
+		return false;
+	for (unsigned int i = 0; i < prefixlen; i++)
+		if (str[i] != prefix[i])
+			return false;
+	return true;
+}

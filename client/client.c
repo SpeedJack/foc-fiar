@@ -13,6 +13,7 @@
 #include "pem.h"
 #include "random.h"
 #include "stringop.h"
+#include <openssl/opensslv.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <stdarg.h>
@@ -20,8 +21,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <openssl/crypto.h>
 
 #define USAGE_STRING	\
 	"Usage: %s [-h] [-v] [-i <num>] [-H <host>] [-p <port>] [-l <port>]"
@@ -59,6 +58,7 @@ static inline void print_help(const char *cmdname)
 static inline void print_version()
 {
 	puts(PACKAGE_STRING " (client)");
+	puts(OPENSSL_VERSION_TEXT);
 }
 
 static int pass_cb(char *buf, int size, int rwflag, void *u)
@@ -71,87 +71,65 @@ static int pass_cb(char *buf, int size, int rwflag, void *u)
 
 static void test(void)
 {
+	error_enable_autoprint();
 	EVP_PKEY *privkey = pem_read_privkey("client_privkey.pem", pass_cb);
-	if (!privkey) {
-		error_print();
+	if (!privkey)
 		return;
-	}
 	struct addrinfo *serveraddr = net_getaddrinfo("127.0.0.1", "8888", AF_INET, SOCK_STREAM);
-	if (!serveraddr) {
-		error_print();
+	if (!serveraddr)
 		return;
-	}
 	int sock = net_connect(*serveraddr);
-	if (sock == -1) {
-		error_print();
+	if (sock == -1)
 		return;
-	}
 	PROTO_CTX *ctx = proto_ctx_new(sock, serveraddr, privkey, NULL);
-	if (!ctx) {
-		error_print();
+	if (!ctx)
 		return;
-	}
 	uint32_t nonce = random_nonce();
-	if (!proto_send_hello(ctx, "Alice", 5656, nonce)) {
-		error_print();
+	if (!proto_send_hello(ctx, "Alice", 5656, nonce))
 		return;
-	}
 	X509 *cert = proto_recv_cert(ctx);
-	if (!cert) {
-		error_print();
+	if (!cert)
 		return;
-	}
 	X509 *ca = pem_read_x509_file("ca.pem");
-	if (!ca) {
-		error_print();
+	if (!ca)
 		return;
-	}
 	X509_CRL *crl = x509_read_crl("crl.pem");
-	if (!crl) {
-		error_print();
+	if (!crl)
 		return;
-	}
-	if (!x509_verify(cert, ca, crl)) {
-		error_print();
+	if (!x509_verify(cert, ca, crl))
 		return;
-	}
+	EVP_PKEY *peerkey = x509_extract_pubkey(cert);
+	if (!peerkey)
+		return;
+	proto_ctx_set_peerkey(ctx, peerkey);
 	struct server_hello *hello = proto_recv_hello(ctx);
-	if (!hello) {
-		error_print();
+	if (!hello)
 		return;
-	}
 	if (hello->nonce != nonce) {
 		cout_print_error("Invalid nonce in SERVER_HELLO.");
 		return;
 	}
-	if (!proto_run_dh(ctx)) {
-		error_print();
+	OPENSSL_free(hello);
+	if (!proto_run_dh(ctx))
 		return;
-	}
 	size_t len;
 	char *buf = (char *)proto_recv_gcm(ctx, &len);
-	if (buf) {
-		error_print();
+	if (!buf)
 		return;
-	}
 	printf("Message: %s\nLen: %lu\n", buf, len);
 	OPENSSL_free(buf);
+	char *msg = "another message.";
+	if (!proto_send_gcm(ctx, msg, strlen(msg) + 1))
+		return;
 	proto_ctx_free(ctx);
 }
 
 /* Client entry-point. */
 int main(int argc, char **argv)
 {
-	test();
-	return 0;
 #ifdef DEBUG_CODE
-	//cout_enable_mem_debug();
+	cout_enable_mem_debug();
 #endif /* DEBUG_CODE */
-	char *tmp = OPENSSL_malloc(20);
-	tmp[0] = 5;
-	tmp[1] = 10;
-	OPENSSL_free(tmp);
-	return 0;
 	uint16_t server_port = 55555;
 	uint16_t listening_port = 50505;
 	char server_addr[254] = "";
@@ -202,5 +180,10 @@ int main(int argc, char **argv)
 		"listening_port = %hu\n",
 		force_ipv, server_addr, server_port, listening_port);
 
+	test();
+
+#ifdef DEBUG_CODE
+	cout_print_alloc_counts();
+#endif /* DEBUG_CODE */
 	return 0;
 }

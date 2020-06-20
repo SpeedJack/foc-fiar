@@ -1,5 +1,5 @@
-#ifndef COMMON_PROTO_H
-#define COMMON_PROTO_H
+#ifndef COMMON_PROTOCOL_H
+#define COMMON_PROTOCOL_H
 
 #include <netdb.h>
 #include <stdbool.h>
@@ -23,5 +23,6 @@ extern bool proto_verify_last_msg(PROTO_CTX *ctx);
 extern void *proto_recv(PROTO_CTX *ctx, size_t *len);
 extern void *proto_recv_verify(PROTO_CTX *ctx, size_t *len);
 extern void *proto_recv_gcm(PROTO_CTX *ctx, size_t *len);
+extern void proto_clear_last_recv_msg(PROTO_CTX *ctx);
 
-#endif /* COMMON_PROTO_H */
+#endif /* COMMON_PROTOCOL_H */

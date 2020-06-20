@@ -373,30 +373,38 @@ static struct msg_header *recv_msg_header(PROTO_CTX *ctx)
 	return header;
 }
 
-static void *recv_encrypted_msg(PROTO_CTX *ctx, size_t *len)
+static struct msg *recv_single_encrypted_msg(PROTO_CTX *ctx, size_t len)
 {
-	assert(ctx && len);
-	void *encrypted = OPENSSL_malloc(FIRST_MSG_SIZE);
+	void *encrypted = OPENSSL_malloc(len);
 	if (!encrypted) {
 		REPORT_ERR(EALLOC, "Can not allocate space for the incoming encrypted message.");
 		return NULL;
 	}
-	if (!net_recv(ctx->socket, encrypted, FIRST_MSG_SIZE)) {
+	if (!net_recv(ctx->socket, encrypted, len)) {
 		OPENSSL_free(encrypted);
 		return NULL;
 	}
-	mem_dump("ENCRYPTED MESSAGE RECEIVED", encrypted, FIRST_MSG_SIZE);
+	mem_dump("ENCRYPTED MESSAGE RECEIVED", encrypted, len);
 	size_t outlen;
-	struct msg *msg = decrypt_msg(ctx, encrypted, FIRST_MSG_SIZE, &outlen);
+	struct msg *msg = decrypt_msg(ctx, encrypted, len, &outlen);
 	OPENSSL_free(encrypted);
 	if (!msg)
 		return NULL;
 	mem_dump("DECRYPTED MESSAGE", msg, outlen);
-	assert(outlen == FIRST_MSG_SIZE);
+	assert(outlen == len);
 	if (!valid_header(ctx, msg->header)) {
 		OPENSSL_free(msg);
 		return NULL;
 	}
+	return msg;
+}
+
+static void *recv_encrypted_msg(PROTO_CTX *ctx, size_t *len)
+{
+	assert(ctx && len);
+	struct msg *msg = recv_single_encrypted_msg(ctx, FIRST_MSG_SIZE);
+	if (!msg)
+		return NULL;
 	*len = msg->header.payload_size;
 	void *buf = OPENSSL_malloc(*len);
 	if (!buf) {
@@ -407,30 +415,9 @@ static void *recv_encrypted_msg(PROTO_CTX *ctx, size_t *len)
 	memcpy(buf, msg->payload, *len > FIRST_PL_SIZE ? FIRST_PL_SIZE : *len);
 	OPENSSL_free(msg);
 	if (*len > FIRST_PL_SIZE) {
-		encrypted = OPENSSL_malloc(REMAINING_SIZE(*len));
-		if (!encrypted) {
-			REPORT_ERR(EALLOC,
-				"Can not allocate space for the second part of the incoming encrypted message.");
-			OPENSSL_free(buf);
-			return NULL;
-		}
-		if (!net_recv(ctx->socket, encrypted, REMAINING_SIZE(*len))) {
-			OPENSSL_free(buf);
-			OPENSSL_free(encrypted);
-			return NULL;
-		}
-		mem_dump("ENCRYPTED MESSAGE RECEIVED", encrypted, REMAINING_SIZE(*len));
-		msg = decrypt_msg(ctx, encrypted, REMAINING_SIZE(*len), &outlen);
-		OPENSSL_free(encrypted);
+		msg = recv_single_encrypted_msg(ctx, REMAINING_SIZE(*len));
 		if (!msg) {
 			OPENSSL_free(buf);
-			return NULL;
-		}
-		mem_dump("DECRYPTED MESSAGE", msg, outlen);
-		assert(outlen == REMAINING_SIZE(*len));
-		if (!valid_header(ctx, msg->header)) {
-			OPENSSL_free(buf);
-			OPENSSL_free(msg);
 			return NULL;
 		}
 		assert(msg->header.payload_size == *len - FIRST_PL_SIZE);

@@ -2,7 +2,6 @@
 #include <config.h>
 #else
 #define PACKAGE_STRING	"connect-4 1.0.0"
-#define NDEBUG		1
 #endif /* HAVE_CONFIG_H */
 
 #include "client/cin.h"
@@ -145,9 +144,9 @@ int main(int argc, char **argv)
 {
 	test();
 	return 0;
-#ifndef NDEBUG
+#ifdef DEBUG_CODE
 	//cout_enable_mem_debug();
-#endif /* NDEBUG */
+#endif /* DEBUG_CODE */
 	char *tmp = OPENSSL_malloc(20);
 	tmp[0] = 5;
 	tmp[1] = 10;

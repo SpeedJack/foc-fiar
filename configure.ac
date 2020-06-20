@@ -95,6 +95,7 @@ fi
 
 if test "x$debug" = "xyes"; then
 	CC_CHECK_CFLAGS_APPEND([-O0 -Og -g -g3 -ggdb3], [], [])
+	AC_DEFINE([DEBUG_CODE], [1], [Enable debug code.])
 else
 	CC_CHECK_CFLAG_APPEND([-O2])
 fi

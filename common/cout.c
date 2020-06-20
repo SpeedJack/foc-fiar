@@ -63,7 +63,7 @@ void cout_print_mem(const char *id, const void *mem, size_t len)
 	fputs("\n", stderr);
 }
 
-#ifndef NDEBUG
+#ifdef DEBUG_CODE
 static void *malloc_wrapper(size_t num, const char *file, int line)
 {
 	void *ret = CRYPTO_malloc(num, file, line);
@@ -88,4 +88,4 @@ void cout_enable_mem_debug()
 {
 	CRYPTO_set_mem_functions(malloc_wrapper, realloc_wrapper, free_wrapper);
 }
-#endif /* NDEBUG */
+#endif /* DEBUG_CODE */

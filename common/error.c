@@ -39,7 +39,7 @@ void error_clear(void)
 	code = ENOERR;
 	errno = 0;
 	if (errmsg)
-		free(errmsg);
+		OPENSSL_free(errmsg);
 	errmsg = NULL;
 }
 
@@ -55,7 +55,7 @@ void error_vsetf(enum error_code c, const char *format, va_list ap)
 	code = c;
 	if (!format || *format == '\0')
 		return;
-	errmsg = malloc(ERRMSG_BUF_SIZE);
+	errmsg = OPENSSL_malloc(ERRMSG_BUF_SIZE);
 	if (!errmsg) {
 		cout_printf_error("error_vsetf: Can not allocate space for error message.\n"
 				"\tMessage: %s\n", format);
@@ -81,13 +81,12 @@ void error_set(enum error_code c, const char *msg)
 	code = c;
 	if (!msg || *msg == '\0')
 		return;
-	errmsg = malloc(strlen(msg) + 1);
+	errmsg = OPENSSL_strdup(msg);
 	if (!errmsg) {
 		cout_printf_error("error_set: Can not allocate space for error message.\n"
 				"\tMessage: %s\n", msg);
 		return;
 	}
-	strcpy(errmsg, msg);
 	if (autoprint)
 		error_print();
 }

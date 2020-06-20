@@ -65,7 +65,7 @@ static DH *get_dh2048(void)
 
 DH_CTX *dh_ctx_new()
 {
-	DH_CTX *ctx = malloc(sizeof(DH_CTX));
+	DH_CTX *ctx = OPENSSL_malloc(sizeof(DH_CTX));
 	if (!ctx) {
 		REPORT_ERR(EALLOC, "Can not allocate space for DH_CTX.");
 		return NULL;
@@ -119,7 +119,7 @@ clean_return_error:
 
 void dh_ctx_free(DH_CTX *ctx)
 {
-	free(ctx);
+	OPENSSL_clear_free(ctx, sizeof(DH_CTX));
 }
 
 unsigned char *dh_derive_secret(DH_CTX *dhctx, unsigned char *peerkey, size_t len)
@@ -148,7 +148,7 @@ unsigned char *dh_derive_secret(DH_CTX *dhctx, unsigned char *peerkey, size_t le
 		REPORT_ERR(EOSSL, "EVP_PKEY_derive() failed (1).");
 		goto clean_return_error;
 	}
-	secret = (unsigned char *)malloc(secretlen);
+	secret = (unsigned char *)OPENSSL_malloc(secretlen);
 	if (!secret) {
 		REPORT_ERR(EALLOC, "Can not allocate space for DH secret.");
 		goto clean_return_error;
@@ -159,12 +159,12 @@ unsigned char *dh_derive_secret(DH_CTX *dhctx, unsigned char *peerkey, size_t le
 	}
 	EVP_PKEY_CTX_free(ctx);
 	unsigned char *hash = digest_sha256(secret, secretlen);
-	free(secret);
+	OPENSSL_clear_free(secret, secretlen);
 	return hash;
 clean_return_error:
 	if (ctx)
 		EVP_PKEY_CTX_free(ctx);
 	if (secret)
-		free(secret);
+		OPENSSL_free(secret);
 	return NULL;
 }

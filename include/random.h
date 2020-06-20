@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-extern void random_init();
-extern uint32_t random_nonce();
+extern void random_init(void);
+extern uint32_t random_nonce(void);
 
 #endif /* COMMON_RANDOM_H */

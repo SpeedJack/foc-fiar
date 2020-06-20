@@ -19,7 +19,7 @@ struct error *proto_get_last_error()
 void proto_clear_last_error()
 {
 	if (last_error && last_error != &invmsg_error)
-		free(last_error);
+		OPENSSL_free(last_error);
 	last_error = NULL;
 }
 
@@ -32,14 +32,12 @@ static void *recv_message(PROTO_CTX *ctx, enum msg_type type, size_t *len,
 	struct message *msg = recv(ctx, &msglen);
 	if (!msg)
 		return NULL;
-	void *buf = malloc(msglen - sizeof(struct message));
+	void *buf = OPENSSL_memdup(msg->body, msglen - sizeof(struct message));
+	OPENSSL_free(msg);
 	if (!buf) {
 		REPORT_ERR(EALLOC, "Can not allocate space for the incoming message.");
-		free(msg);
 		return NULL;
 	}
-	memcpy(buf, msg->body, msglen - sizeof(struct message));
-	free(msg);
 	if (len)
 		*len = msglen - sizeof(struct message);
 	if (msg->type == type)
@@ -49,6 +47,7 @@ static void *recv_message(PROTO_CTX *ctx, enum msg_type type, size_t *len,
 		REPORT_ERR(EPEERERR, last_error->message);
 		return NULL;
 	}
+	OPENSSL_free(buf);
 	last_error = &invmsg_error;
 	return NULL;
 }
@@ -66,7 +65,7 @@ bool proto_send_cert(PROTO_CTX *ctx, X509 *cert)
 	if (!serialized)
 		return false;
 	size_t msglen = MSG_SIZE_OF(struct server_cert) + len;
-	struct message *msg = malloc(msglen);
+	struct message *msg = OPENSSL_malloc(msglen);
 	if (!msg) {
 		REPORT_ERR(EALLOC, "Can not allocate space for SERVER_CERT message.");
 		OPENSSL_free(serialized);
@@ -78,7 +77,7 @@ bool proto_send_cert(PROTO_CTX *ctx, X509 *cert)
 	memcpy(body->cert, serialized, len);
 	OPENSSL_free(serialized);
 	bool res = proto_send_sign(ctx, msg, msglen);
-	free(msg);
+	OPENSSL_free(msg);
 	return res;
 }
 
@@ -86,7 +85,7 @@ bool proto_send_hello(PROTO_CTX *ctx, const char *username, uint32_t nonce)
 {
 	assert(username);
 	size_t msglen = MSG_SIZE_OF(struct server_hello);
-	struct message *msg = malloc(msglen);
+	struct message *msg = OPENSSL_malloc(msglen);
 	if (!msg) {
 		REPORT_ERR(EALLOC, "Can not allocate space for SERVER_HELLO message.");
 		return false;
@@ -97,7 +96,7 @@ bool proto_send_hello(PROTO_CTX *ctx, const char *username, uint32_t nonce)
 	strncpy(body->peer_username, username, MAX_USERNAME_LEN);
 	body->peer_username[MAX_USERNAME_LEN] = '\0';
 	bool res = proto_send_sign(ctx, msg, msglen);
-	free(msg);
+	OPENSSL_free(msg);
 	return res;
 }
 
@@ -115,19 +114,19 @@ bool proto_run_dh(PROTO_CTX *ctx)
 		dh_ctx_free(dhctx);
 		return false;
 	}
-	struct message *msg = malloc(MSG_SIZE_OF(struct dhkey) + pklen);
+	struct message *msg = OPENSSL_malloc(MSG_SIZE_OF(struct dhkey) + pklen);
 	msg->type = DHKEY;
 	struct dhkey *my = (struct dhkey *)msg->body;
 	my->nonce = peer->nonce;
 	my->len = pklen;
 	memcpy(my->key, pk, pklen);
-	free(pk);
+	OPENSSL_free(pk);
 	if (!proto_send_sign(ctx, msg, MSG_SIZE_OF(struct dhkey) + pklen)) {
-		free(msg);
+		OPENSSL_free(msg);
 		dh_ctx_free(dhctx);
 		return false;
 	}
-	free(msg);
+	OPENSSL_free(msg);
 	unsigned char *secret = dh_derive_secret(dhctx, peer->key, peer->len);
 	if (secret)
 		proto_ctx_set_secret(ctx, secret);

@@ -1,7 +1,8 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #else
-#define PACKAGE_STRING "connect-4 1.0.0"
+#define PACKAGE_STRING	"connect-4 1.0.0"
+#define NDEBUG		1
 #endif /* HAVE_CONFIG_H */
 
 #include "client/cin.h"
@@ -15,6 +16,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#include <openssl/crypto.h>
 
 #define USAGE_STRING	\
 	"Usage: %s [-h] [-v] [-i <num>] [-H <host>] [-p <port>] [-l <port>]"
@@ -57,6 +60,14 @@ static inline void print_version()
 /* Client entry-point. */
 int main(int argc, char **argv)
 {
+#ifndef NDEBUG
+	//cout_enable_mem_debug();
+#endif /* NDEBUG */
+	char *tmp = OPENSSL_malloc(20);
+	tmp[0] = 5;
+	tmp[1] = 10;
+	OPENSSL_free(tmp);
+	return 0;
 	uint16_t server_port = 55555;
 	uint16_t listening_port = 50505;
 	char server_addr[254] = "";

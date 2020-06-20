@@ -45,7 +45,7 @@ typedef void *transform_cb(PROTO_CTX *ctx, const void *data, size_t len,
 PROTO_CTX *proto_ctx_new(int socket, struct addrinfo *peeraddr,
 	EVP_PKEY *privkey, EVP_PKEY *peerkey)
 {
-	PROTO_CTX *ctx = malloc(sizeof(PROTO_CTX));
+	PROTO_CTX *ctx = OPENSSL_malloc(sizeof(PROTO_CTX));
 	if (!ctx) {
 		REPORT_ERR(EALLOC, "Can not allocate space for PROTO_CTX.");
 		return NULL;
@@ -81,10 +81,10 @@ void proto_ctx_free(PROTO_CTX *ctx)
 	if (!ctx)
 		return;
 	close(ctx->socket);
-	free(ctx->last_recv_msg);
+	OPENSSL_free(ctx->last_recv_msg);
 	digest_ctx_free(ctx->dctx);
 	gcm_ctx_free(ctx->gctx);
-	free(ctx);
+	OPENSSL_free(ctx);
 }
 
 static struct msg_header create_header(PROTO_CTX *ctx, size_t len)
@@ -104,7 +104,7 @@ static struct msg *craft_msg(PROTO_CTX *ctx, const void *data, size_t len,
 	*outlen = !second ? len
 		: (FIRST_MSG_SIZE + (len > FIRST_PL_SIZE
 					? REMAINING_SIZE(len) : 0));
-	void *msg = calloc(*outlen, 1);
+	void *msg = OPENSSL_zalloc(*outlen);
 	if (!msg) {
 		REPORT_ERR(EALLOC, "Can not allocate space for the messages to be sent.");
 		return NULL;
@@ -134,15 +134,15 @@ static void *encrypt_single_msg(PROTO_CTX *ctx, const struct msg *msg,
 	if (!ct)
 		return NULL;
 	*outlen = len + sizeof(tag);
-	void *buf = malloc(*outlen);
+	void *buf = OPENSSL_malloc(*outlen);
 	if (!buf) {
 		REPORT_ERR(EALLOC, "Can not allocate space for the encrypted message to be sent.");
-		free(ct);
+		OPENSSL_free(ct);
 		return NULL;
 	}
 	memcpy(buf, ct, len);
 	memcpy(buf + len, tag, sizeof(tag));
-	free(ct);
+	OPENSSL_free(ct);
 	return buf;
 }
 
@@ -157,7 +157,7 @@ static void *encrypt_msg(PROTO_CTX *ctx, const void *data, size_t len,
 	size_t firstsize;
 	unsigned char *ct = encrypt_single_msg(ctx, msg, FIRST_MSG_SIZE, &firstsize);
 	if (!ct) {
-		free(msg);
+		OPENSSL_free(msg);
 		return NULL;
 	}
 	size_t secondsize = 0;
@@ -166,17 +166,17 @@ static void *encrypt_msg(PROTO_CTX *ctx, const void *data, size_t len,
 		nextct = encrypt_single_msg(ctx, msg + FIRST_MSG_SIZE,
 			*outlen - FIRST_MSG_SIZE, &secondsize);
 		if (!nextct) {
-			free(msg);
+			OPENSSL_free(msg);
 			return NULL;
 		}
 	}
-	free(msg);
+	OPENSSL_free(msg);
 	*outlen = firstsize + secondsize;
-	void *buf = malloc(*outlen);
+	void *buf = OPENSSL_malloc(*outlen);
 	if (!buf) {
 		REPORT_ERR(EALLOC, "Can not allocate space for the encrypted messages to be sent.");
-		free(ct);
-		free(nextct);
+		OPENSSL_free(ct);
+		OPENSSL_free(nextct);
 		return NULL;
 	}
 	memcpy(buf, ct, firstsize);
@@ -197,24 +197,24 @@ static void *sign_msg(PROTO_CTX *ctx, const void *data, size_t len,
 	unsigned char* sig = digest_sign(ctx->dctx, (unsigned char *)msg,
 		msglen, &slen);
 	if (!sig) {
-		free(msg);
+		OPENSSL_free(msg);
 		return NULL;
 	}
 	assert(slen > 0);
 	uint32_t siglen = (uint32_t)slen;
 	*outlen = msglen + sizeof(uint32_t) + slen;
-	void *buf = malloc(*outlen);
+	void *buf = OPENSSL_malloc(*outlen);
 	if (!buf) {
 		REPORT_ERR(EALLOC, "Can not allocate space for the signed message to be sent.");
-		free(msg);
-		free(sig);
+		OPENSSL_free(msg);
+		OPENSSL_free(sig);
 		return NULL;
 	}
 	memcpy(buf, msg, msglen);
 	memcpy(buf + msglen, &siglen, sizeof(uint32_t));
 	memcpy(buf + msglen + sizeof(uint32_t), sig, slen);
-	free(msg);
-	free(sig);
+	OPENSSL_free(msg);
+	OPENSSL_free(sig);
 	return buf;
 }
 
@@ -234,10 +234,10 @@ static bool send_msg(PROTO_CTX *ctx, const void *data, size_t len,
 		return false;
 	assert(outlen > len);
 	if (!net_sendto(ctx->socket, msg, outlen, 0, ctx->peeraddr)) {
-		free(msg);
+		OPENSSL_free(msg);
 		return false;
 	}
-	free(msg);
+	OPENSSL_free(msg);
 	return true;
 }
 
@@ -284,13 +284,13 @@ static unsigned char *recv_signature(PROTO_CTX *ctx, uint32_t *len)
 	assert(ctx && len);
 	if (!net_recv(ctx->socket, len, sizeof(uint32_t), 0))
 		return NULL;
-	unsigned char *sig = malloc(*len);
+	unsigned char *sig = OPENSSL_malloc(*len);
 	if (!sig) {
 		REPORT_ERR(EALLOC, "Can not allocate space for message signature.");
 		return NULL;
 	}
 	if (!net_recv(ctx->socket, sig, *len, 0)) {
-		free(sig);
+		OPENSSL_free(sig);
 		return NULL;
 	}
 	return sig;
@@ -299,16 +299,12 @@ static unsigned char *recv_signature(PROTO_CTX *ctx, uint32_t *len)
 bool proto_verify_last_msg(PROTO_CTX *ctx)
 {
 	uint32_t len;
-	bool res = false;
 	unsigned char *sig = recv_signature(ctx, &len);
 	if (!sig)
-		goto clean_return;
-	res = digest_verify(ctx->dctx, (unsigned char *)ctx->last_recv_msg,
+		return false;
+	bool res = digest_verify(ctx->dctx, (unsigned char *)ctx->last_recv_msg,
 			ctx->last_recv_msg_size, sig, len);
-	free(sig);
-clean_return:
-	ctx->last_recv_msg = NULL;
-	ctx->last_recv_msg_size = 0;
+	OPENSSL_free(sig);
 	return res;
 }
 
@@ -329,17 +325,17 @@ static void *decrypt_msg(PROTO_CTX *ctx, const void *data, size_t len,
 static struct msg_header *recv_msg_header(PROTO_CTX *ctx)
 {
 	assert(ctx);
-	struct msg_header *header = malloc(sizeof(struct msg_header));
+	struct msg_header *header = OPENSSL_malloc(sizeof(struct msg_header));
 	if (!header) {
 		REPORT_ERR(EALLOC, "Can not allocate space for the incoming message header.");
 		return NULL;
 	}
 	if (!net_recv(ctx->socket, header, sizeof(struct msg_header), 0)) {
-		free(header);
+		OPENSSL_free(header);
 		return NULL;
 	}
 	if (!valid_header(ctx, *header)) {
-		free(header);
+		OPENSSL_free(header);
 		return NULL;
 	}
 	return header;
@@ -348,62 +344,62 @@ static struct msg_header *recv_msg_header(PROTO_CTX *ctx)
 static void *recv_encrypted_msg(PROTO_CTX *ctx, size_t *len)
 {
 	assert(ctx && len);
-	void *encrypted = malloc(FIRST_MSG_SIZE);
+	void *encrypted = OPENSSL_malloc(FIRST_MSG_SIZE);
 	if (!encrypted) {
 		REPORT_ERR(EALLOC, "Can not allocate space for the incoming encrypted message.");
 		return NULL;
 	}
 	if (!net_recv(ctx->socket, encrypted, FIRST_MSG_SIZE, 0)) {
-		free(encrypted);
+		OPENSSL_free(encrypted);
 		return NULL;
 	}
 	size_t outlen;
 	struct msg *msg = decrypt_msg(ctx, encrypted, FIRST_MSG_SIZE, &outlen);
-	free(encrypted);
+	OPENSSL_free(encrypted);
 	if (!msg)
 		return NULL;
 	assert(outlen == FIRST_MSG_SIZE);
 	if (!valid_header(ctx, msg->header)) {
-		free(msg);
+		OPENSSL_free(msg);
 		return NULL;
 	}
 	*len = msg->header.payload_size;
-	void *buf = malloc(*len);
+	void *buf = OPENSSL_malloc(*len);
 	if (!buf) {
 		REPORT_ERR(EALLOC, "Can not allocate space for the incoming message.");
-		free(msg);
+		OPENSSL_free(msg);
 		return NULL;
 	}
 	memcpy(buf, msg->payload, FIRST_PL_SIZE);
-	free(msg);
+	OPENSSL_free(msg);
 	if (*len > FIRST_PL_SIZE) {
-		encrypted = malloc(REMAINING_SIZE(*len));
+		encrypted = OPENSSL_malloc(REMAINING_SIZE(*len));
 		if (!encrypted) {
 			REPORT_ERR(EALLOC,
 				"Can not allocate space for the second part of the incoming encrypted message.");
-			free(buf);
+			OPENSSL_free(buf);
 			return NULL;
 		}
 		if (!net_recv(ctx->socket, encrypted, REMAINING_SIZE(*len), 0)) {
-			free(buf);
-			free(encrypted);
+			OPENSSL_free(buf);
+			OPENSSL_free(encrypted);
 			return NULL;
 		}
 		msg = decrypt_msg(ctx, encrypted, REMAINING_SIZE(*len), &outlen);
-		free(encrypted);
+		OPENSSL_free(encrypted);
 		if (!msg) {
-			free(buf);
+			OPENSSL_free(buf);
 			return NULL;
 		}
 		assert(outlen == REMAINING_SIZE(*len));
 		if (!valid_header(ctx, msg->header)) {
-			free(buf);
-			free(msg);
+			OPENSSL_free(buf);
+			OPENSSL_free(msg);
 			return NULL;
 		}
 		assert(msg->header.payload_size == REMAINING_SIZE(*len));
 		memcpy(buf + FIRST_PL_SIZE, msg->payload, REMAINING_SIZE(*len));
-		free(msg);
+		OPENSSL_free(msg);
 	}
 	return buf;
 }
@@ -415,16 +411,16 @@ static struct msg *recv_msg(PROTO_CTX *ctx, size_t *len)
 	if (!header)
 		return NULL;
 	*len = header->payload_size;
-	free(header);
-	struct msg *msg = malloc(*len + sizeof(struct msg_header));
+	OPENSSL_free(header);
+	struct msg *msg = OPENSSL_malloc(*len + sizeof(struct msg_header));
 	if (!msg) {
 		REPORT_ERR(EALLOC, "Can not allocate space for the incoming message.");
 		return NULL;
 	}
 	memcpy(&msg->header, header, sizeof(struct msg_header));
-	free(header);
+	OPENSSL_free(header);
 	if (!net_recv(ctx->socket, msg->payload, *len, 0)) {
-		free(msg);
+		OPENSSL_free(msg);
 		return NULL;
 	}
 	return msg;
@@ -432,7 +428,7 @@ static struct msg *recv_msg(PROTO_CTX *ctx, size_t *len)
 
 void proto_clear_last_recv_msg(PROTO_CTX *ctx)
 {
-	free(ctx->last_recv_msg);
+	OPENSSL_free(ctx->last_recv_msg);
 	ctx->last_recv_msg = NULL;
 	ctx->last_recv_msg_size = 0;
 }
@@ -452,9 +448,7 @@ void *proto_recv_verify(PROTO_CTX *ctx, size_t *len)
 	struct msg *msg = recv_msg(ctx, len);
 	ctx->last_recv_msg = msg;
 	ctx->last_recv_msg_size = *len;
-	if (!proto_verify_last_msg(ctx))
-		return NULL;
-	return msg->payload;
+	return proto_verify_last_msg(ctx) ? msg->payload : NULL;
 }
 
 void *proto_recv_gcm(PROTO_CTX *ctx, size_t *len)

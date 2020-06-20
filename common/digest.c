@@ -38,7 +38,7 @@ clean_return_error:
 
 DIGEST_CTX *digest_ctx_new(EVP_PKEY *privkey, EVP_PKEY *peerkey)
 {
-	DIGEST_CTX *ctx = malloc(sizeof(DIGEST_CTX));
+	DIGEST_CTX *ctx = OPENSSL_malloc(sizeof(DIGEST_CTX));
 	if (!ctx) {
 		REPORT_ERR(EALLOC, "Can not allocate space for DIGEST_CTX.");
 		return NULL;
@@ -56,7 +56,7 @@ void digest_ctx_set_peerkey(DIGEST_CTX *ctx, EVP_PKEY *peerkey)
 
 void digest_ctx_free(DIGEST_CTX *ctx)
 {
-	free(ctx);
+	OPENSSL_clear_free(ctx, sizeof(DIGEST_CTX));
 }
 
 unsigned char *digest_sign(const DIGEST_CTX *dctx, const unsigned char *msg,
@@ -90,7 +90,6 @@ unsigned char *digest_sign(const DIGEST_CTX *dctx, const unsigned char *msg,
 		REPORT_ERR(EOSSL, "EVP_DigestSignFinal() failed (2).");
 		OPENSSL_free(sig);
 		sig = NULL;
-		goto clean_return;
 	}
 clean_return:
 	EVP_MD_CTX_free(ctx);
@@ -117,10 +116,8 @@ bool digest_verify(const DIGEST_CTX *dctx, const unsigned char *msg, size_t len,
 		goto clean_return_error;
 	}
 	int ret = EVP_DigestVerifyFinal(ctx, sig, slen);
-	if (ret != 1 && ret != 0) {
+	if (ret != 1 && ret != 0)
 		REPORT_ERR(EOSSL, "EVP_DigestVerifyFinal() failed.");
-		goto clean_return_error;
-	}
 	EVP_MD_CTX_free(ctx);
 	return ret == 1;
 clean_return_error:

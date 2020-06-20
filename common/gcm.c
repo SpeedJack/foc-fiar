@@ -17,7 +17,7 @@ struct gcm_ctx {
 
 GCM_CTX *gcm_ctx_new(const unsigned char *secret)
 {
-	GCM_CTX *ctx = malloc(sizeof(GCM_CTX));
+	GCM_CTX *ctx = OPENSSL_malloc(sizeof(GCM_CTX));
 	if (!ctx) {
 		REPORT_ERR(EALLOC, "Can not allocate space for GCM_CTX.");
 		return NULL;
@@ -32,7 +32,7 @@ GCM_CTX *gcm_ctx_new(const unsigned char *secret)
 
 void gcm_ctx_free(GCM_CTX *ctx)
 {
-	free(ctx);
+	OPENSSL_free(ctx);
 }
 
 void gcm_ctx_set_nonce(GCM_CTX *ctx, uint32_t nonce)
@@ -42,7 +42,7 @@ void gcm_ctx_set_nonce(GCM_CTX *ctx, uint32_t nonce)
 
 static bool ctx_update(struct gcm_ctx *ctx, bool enc)
 {
-	unsigned char *input = malloc(sizeof(ctx->iv) + 2*sizeof(uint32_t));
+	unsigned char *input = OPENSSL_malloc(sizeof(ctx->iv) + 2*sizeof(uint32_t));
 	if (!input) {
 		REPORT_ERR(EALLOC, "Can not allocate space for GCM IV derivation.");
 		return false;
@@ -52,11 +52,11 @@ static bool ctx_update(struct gcm_ctx *ctx, bool enc)
 	memcpy(input + sizeof(uint32_t) + sizeof(ctx->iv), &ctx->nonce, sizeof(uint32_t));
 	unsigned char *hash = digest_sha256(input, sizeof(ctx->iv) + 2*sizeof(uint32_t));
 	if (!hash) {
-		free(input);
+		OPENSSL_free(input);
 		return false;
 	}
 	memcpy(ctx->iv, &hash[9], sizeof(ctx->iv));
-	free(input);
+	OPENSSL_free(input);
 	ctx->enc_counter++;
 	ctx->dec_counter++;
 	return true;
@@ -80,7 +80,7 @@ unsigned char *gcm_encrypt(struct gcm_ctx *gctx, const unsigned char *pt, size_t
 		REPORT_ERR(EOSSL, "EVP_EncryptInit_ex() failed (2).");
 		goto clean_return_error;
 	}
-	ct = malloc(len);
+	ct = OPENSSL_malloc(len);
 	if (!ct) {
 		REPORT_ERR(EALLOC, "Can not allocate space for GCM ciphertext.");
 		goto clean_return_error;
@@ -104,7 +104,7 @@ unsigned char *gcm_encrypt(struct gcm_ctx *gctx, const unsigned char *pt, size_t
 	return ct;
 clean_return_error:
 	if (ct)
-		free(ct);
+		OPENSSL_free(ct);
 	EVP_CIPHER_CTX_free(ctx);
 	return NULL;
 }
@@ -127,7 +127,7 @@ unsigned char *gcm_decrypt(struct gcm_ctx *gctx, const unsigned char *ct, size_t
 		REPORT_ERR(EOSSL, "EVP_DecryptInit_ex() failed (2).");
 		goto clean_return_error;
 	}
-	pt = malloc(len);
+	pt = OPENSSL_malloc(len);
 	if (!pt) {
 		REPORT_ERR(EALLOC, "Can not allocate space for GCM plaintext.");
 		goto clean_return_error;
@@ -151,7 +151,7 @@ unsigned char *gcm_decrypt(struct gcm_ctx *gctx, const unsigned char *ct, size_t
 	return pt;
 clean_return_error:
 	if (pt)
-		free(pt);
+		OPENSSL_free(pt);
 	EVP_CIPHER_CTX_free(ctx);
 	return NULL;
 }

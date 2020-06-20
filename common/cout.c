@@ -1,8 +1,5 @@
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif /* HAVE_CONFIG_H */
-
 #include "cout.h"
+#include <openssl/crypto.h>
 #include <stdio.h>
 
 #define COLOR_ERROR	"\033[1;31m"
@@ -46,3 +43,30 @@ void cout_print_error(const char *errstr)
 	__reset_color();
 	fputs("\n", stderr);
 }
+
+#ifndef NDEBUG
+static void *malloc_wrapper(size_t num, const char *file, int line)
+{
+	void *ret = CRYPTO_malloc(num, file, line);
+	fprintf(stderr, "[MEMDBG] %s:%d: called malloc(%lu): %p\n", file, line, num, ret);
+	return ret;
+}
+
+static void *realloc_wrapper(void *addr, size_t num, const char *file, int line)
+{
+	void *ret = CRYPTO_realloc(addr, num, file, line);
+	fprintf(stderr, "[MEMDBG] %s:%d: called realloc(%p, %lu): %p\n", file, line, addr, num, ret);
+	return ret;
+}
+
+static void free_wrapper(void *addr, const char *file, int line)
+{
+	CRYPTO_free(addr, file, line);
+	fprintf(stderr, "[MEMDBG] %s:%d: called free(%p)\n", file, line, addr);
+}
+
+void cout_enable_mem_debug()
+{
+	CRYPTO_set_mem_functions(malloc_wrapper, realloc_wrapper, free_wrapper);
+}
+#endif /* NDEBUG */

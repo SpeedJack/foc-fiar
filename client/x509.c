@@ -53,7 +53,7 @@ static bool x509_verify_name(const X509 *cert)
 	if (!name)
 		return false;
 	int res = strcmp(name, subject_name);
-	free(name);
+	OPENSSL_free(name);
 	if (res != 0)
 		REPORT_ERR(EINVCERT, "Invalid subject name.");
 	return res == 0;

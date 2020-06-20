@@ -7,7 +7,12 @@
 
 #include "client/cin.h"
 #include "client/connect4.h"
+#include "client/proto.h"
 #include "cout.h"
+#include "error.h"
+#include "net.h"
+#include "pem.h"
+#include "random.h"
 #include "stringop.h"
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -57,9 +62,89 @@ static inline void print_version()
 	puts(PACKAGE_STRING " (client)");
 }
 
+static int pass_cb(char *buf, int size, int rwflag, void *u)
+{
+	char *tmp = "password";
+	size_t len = strlen(tmp);
+	memcpy(buf, tmp, len);
+	return len;
+}
+
+static void test(void)
+{
+	EVP_PKEY *privkey = pem_read_privkey("client_privkey.pem", pass_cb);
+	if (!privkey) {
+		error_print();
+		return;
+	}
+	struct addrinfo *serveraddr = net_getaddrinfo("127.0.0.1", "8888", AF_INET, SOCK_STREAM);
+	if (!serveraddr) {
+		error_print();
+		return;
+	}
+	int sock = net_connect(*serveraddr);
+	if (sock == -1) {
+		error_print();
+		return;
+	}
+	PROTO_CTX *ctx = proto_ctx_new(sock, serveraddr, privkey, NULL);
+	if (!ctx) {
+		error_print();
+		return;
+	}
+	uint32_t nonce = random_nonce();
+	if (!proto_send_hello(ctx, "Alice", 5656, nonce)) {
+		error_print();
+		return;
+	}
+	X509 *cert = proto_recv_cert(ctx);
+	if (!cert) {
+		error_print();
+		return;
+	}
+	X509 *ca = pem_read_x509_file("ca.pem");
+	if (!ca) {
+		error_print();
+		return;
+	}
+	X509_CRL *crl = x509_read_crl("crl.pem");
+	if (!crl) {
+		error_print();
+		return;
+	}
+	if (!x509_verify(cert, ca, crl)) {
+		error_print();
+		return;
+	}
+	struct server_hello *hello = proto_recv_hello(ctx);
+	if (!hello) {
+		error_print();
+		return;
+	}
+	if (hello->nonce != nonce) {
+		cout_print_error("Invalid nonce in SERVER_HELLO.");
+		return;
+	}
+	if (!proto_run_dh(ctx)) {
+		error_print();
+		return;
+	}
+	size_t len;
+	char *buf = (char *)proto_recv_gcm(ctx, &len);
+	if (buf) {
+		error_print();
+		return;
+	}
+	printf("Message: %s\nLen: %lu\n", buf, len);
+	OPENSSL_free(buf);
+	proto_ctx_free(ctx);
+}
+
 /* Client entry-point. */
 int main(int argc, char **argv)
 {
+	test();
+	return 0;
 #ifndef NDEBUG
 	//cout_enable_mem_debug();
 #endif /* NDEBUG */

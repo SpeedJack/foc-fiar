@@ -19,7 +19,7 @@ extern void proto_ctx_free(PROTO_CTX *ctx);
 extern bool proto_send(PROTO_CTX *ctx, const void *data, const size_t len);
 extern bool proto_send_sign(PROTO_CTX *ctx, const void *data, const size_t len);
 extern bool proto_send_gcm(PROTO_CTX *ctx, const void *data, const size_t len);
-extern bool proto_verify_last_message(PROTO_CTX *ctx);
+extern bool proto_verify_last_msg(PROTO_CTX *ctx);
 extern void *proto_recv(PROTO_CTX *ctx, size_t *len);
 extern void *proto_recv_verify(PROTO_CTX *ctx, size_t *len);
 extern void *proto_recv_gcm(PROTO_CTX *ctx, size_t *len);

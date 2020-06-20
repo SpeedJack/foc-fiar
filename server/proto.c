@@ -1,9 +1,7 @@
-#include "server/x509.h"
+#include "server/proto.h"
 #include "assertions.h"
 #include "dh.h"
 #include "error.h"
-#include "messages.h"
-#include "proto.h"
 #include <string.h>
 
 typedef void *recv_func(PROTO_CTX *ctx, size_t *len);
@@ -33,7 +31,6 @@ static void *recv_message(PROTO_CTX *ctx, enum msg_type type, size_t *len,
 	if (!msg)
 		return NULL;
 	void *buf = OPENSSL_memdup(msg->body, msglen - sizeof(struct message));
-	OPENSSL_free(msg);
 	if (!buf) {
 		REPORT_ERR(EALLOC, "Can not allocate space for the incoming message.");
 		return NULL;
@@ -76,7 +73,7 @@ bool proto_send_cert(PROTO_CTX *ctx, X509 *cert)
 	body->len = len;
 	memcpy(body->cert, serialized, len);
 	OPENSSL_free(serialized);
-	bool res = proto_send_sign(ctx, msg, msglen);
+	bool res = proto_send(ctx, msg, msglen);
 	OPENSSL_free(msg);
 	return res;
 }
@@ -103,8 +100,7 @@ bool proto_send_hello(PROTO_CTX *ctx, const char *username, uint32_t nonce)
 bool proto_run_dh(PROTO_CTX *ctx)
 {
 	assert(ctx);
-	size_t msglen;
-	struct dhkey *peer = (struct dhkey *)recv_message(ctx, DHKEY, &msglen, proto_recv_verify);
+	struct dhkey *peer = (struct dhkey *)recv_message(ctx, DHKEY, NULL, proto_recv_verify);
 	if (!peer)
 		return false;
 	DH_CTX *dhctx = dh_ctx_new();

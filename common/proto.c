@@ -101,7 +101,7 @@ static struct msg *craft_msg(PROTO_CTX *ctx, const void *data, size_t len,
 	size_t *outlen, struct msg **second)
 {
 	assert(ctx && outlen);
-	*outlen = !second ? len
+	*outlen = !second ? len + sizeof(struct msg_header)
 		: (FIRST_MSG_SIZE + (len > FIRST_PL_SIZE
 					? REMAINING_SIZE(len) : 0));
 	void *msg = OPENSSL_zalloc(*outlen);
@@ -411,10 +411,10 @@ static struct msg *recv_msg(PROTO_CTX *ctx, size_t *len)
 	if (!header)
 		return NULL;
 	*len = header->payload_size;
-	OPENSSL_free(header);
 	struct msg *msg = OPENSSL_malloc(*len + sizeof(struct msg_header));
 	if (!msg) {
 		REPORT_ERR(EALLOC, "Can not allocate space for the incoming message.");
+		OPENSSL_free(header);
 		return NULL;
 	}
 	memcpy(&msg->header, header, sizeof(struct msg_header));
@@ -437,6 +437,8 @@ void *proto_recv(PROTO_CTX *ctx, size_t *len)
 {
 	proto_clear_last_recv_msg(ctx);
 	struct msg *msg = recv_msg(ctx, len);
+	if (!msg)
+		return NULL;
 	ctx->last_recv_msg = msg;
 	ctx->last_recv_msg_size = *len;
 	return msg->payload;
@@ -446,6 +448,8 @@ void *proto_recv_verify(PROTO_CTX *ctx, size_t *len)
 {
 	proto_clear_last_recv_msg(ctx);
 	struct msg *msg = recv_msg(ctx, len);
+	if (!msg)
+		return NULL;
 	ctx->last_recv_msg = msg;
 	ctx->last_recv_msg_size = *len;
 	return proto_verify_last_msg(ctx) ? msg->payload : NULL;

@@ -5,8 +5,8 @@
 #include "messages.h"
 #include "protocol.h"
 
-extern struct error *proto_get_last_error();
-extern void proto_clear_last_error();
+extern struct error *proto_get_last_error(void);
+extern void proto_clear_last_error(void);
 extern bool proto_send_hello(PROTO_CTX *ctx, const char *username, uint16_t port,
 	uint32_t nonce);
 extern X509 *proto_recv_cert(PROTO_CTX *ctx);

@@ -6,7 +6,7 @@
 struct dh_ctx;
 typedef struct dh_ctx DH_CTX;
 
-extern DH_CTX *dh_ctx_new();
+extern DH_CTX *dh_ctx_new(void);
 extern unsigned char *dh_gen_pubkey(DH_CTX *dhctx, size_t *len);
 extern unsigned char *dh_derive_secret(DH_CTX *dhctx, unsigned char *peerkey,
 	size_t len);

@@ -44,6 +44,8 @@ int net_udp_bind(uint16_t port)
 int net_listen(uint16_t port, int socktype)
 {
 	int sfd = net_bind(port, socktype);
+	if (sfd == -1)
+		return -1;
 	if (listen(sfd, LISTEN_BACKLOG) == -1) {
 		REPORT_ERR(ENET, "listen() failed.");
 		return -1;

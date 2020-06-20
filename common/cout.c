@@ -1,6 +1,8 @@
 #include "cout.h"
+#include <openssl/bio.h>
 #include <openssl/crypto.h>
 #include <stdio.h>
+#include <string.h>
 
 #define COLOR_ERROR	"\033[1;31m"
 #define COLOR_RESET	"\033[0m"
@@ -41,6 +43,23 @@ void cout_print_error(const char *errstr)
 	__print_error_color();
 	fputs(errstr, stderr);
 	__reset_color();
+	fputs("\n", stderr);
+}
+
+void cout_print_mem(const char *id, const void *mem, size_t len)
+{
+	size_t idlen = strlen(id);
+	for (unsigned int i = 0; i < 35 - idlen/2; i++)
+		putc('=', stderr);
+	putc(' ', stderr);
+	fputs(id, stderr);
+	putc(' ', stderr);
+	for (unsigned int i = 0; i < 36 - idlen/2 - (idlen % 2); i++)
+		putc('=', stderr);
+	fputs("\n", stderr);
+	BIO_dump_fp(stderr, (const char *)mem, len);
+	for (unsigned int i = 0; i < 73; i++)
+		putc('=', stderr);
 	fputs("\n", stderr);
 }
 

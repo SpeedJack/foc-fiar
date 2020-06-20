@@ -27,7 +27,7 @@ static inline void error_disable_autoprint()
 	error_set_autoprint(false);
 }
 
-#define _REPORT_ERR(func, code, msg)	error_setf(code, "%s: %s", func, msg)
-#define REPORT_ERR(code, msg)		_REPORT_ERR(__func__, code, msg)
+#define _REPORT_ERR(code, msg, func, line)	error_setf(code, "%s:%d: %s", func, line, msg)
+#define REPORT_ERR(code, msg)			_REPORT_ERR(code, msg, __func__, __LINE__)
 
 #endif /* COMMON_ERROR_H */

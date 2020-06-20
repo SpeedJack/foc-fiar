@@ -1,3 +1,13 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#else
+#define NDEBUG			1
+#endif /* HAVE_CONFIG_H */
+
+#ifndef NDEBUG
+#include "cout.h"
+#endif /* NDEBUG */
+
 #include "proto.h"
 #include "assertions.h"
 #include "digest.h"
@@ -246,6 +256,9 @@ static bool send_msg(PROTO_CTX *ctx, const void *data, size_t len,
 		OPENSSL_free(msg);
 		return false;
 	}
+#ifndef NDEBUG
+	cout_print_mem("MESSAGE SENT", msg, outlen);
+#endif /* NDEBUG */
 	OPENSSL_free(msg);
 	return true;
 }
@@ -302,6 +315,9 @@ static unsigned char *recv_signature(PROTO_CTX *ctx, uint32_t *len)
 		OPENSSL_free(sig);
 		return NULL;
 	}
+#ifndef NDEBUG
+	cout_print_mem("SIGNATURE RECEIVED", sig, *len);
+#endif /* NDEBUG */
 	return sig;
 }
 
@@ -324,6 +340,9 @@ static void *decrypt_msg(PROTO_CTX *ctx, const void *data, size_t len,
 	unsigned char tag[16];
 	if (!net_recv(ctx->socket, tag, sizeof(tag), 0))
 		return NULL;
+#ifndef NDEBUG
+	cout_print_mem("GCM TAG RECEIVED", tag, sizeof(tag));
+#endif /* NDEBUG */
 	gcm_ctx_set_nonce(ctx->gctx, ctx->last_send_nonce);
 	struct msg *msg = (struct msg *)gcm_decrypt(ctx->gctx,
 		(unsigned char *)data, len, tag);
@@ -362,11 +381,17 @@ static void *recv_encrypted_msg(PROTO_CTX *ctx, size_t *len)
 		OPENSSL_free(encrypted);
 		return NULL;
 	}
+#ifndef NDEBUG
+	cout_print_mem("ENCRYPTED MESSAGE RECEIVED", encrypted, FIRST_MSG_SIZE);
+#endif /* NDEBUG */
 	size_t outlen;
 	struct msg *msg = decrypt_msg(ctx, encrypted, FIRST_MSG_SIZE, &outlen);
 	OPENSSL_free(encrypted);
 	if (!msg)
 		return NULL;
+#ifndef NDEBUG
+	cout_print_mem("DECRYPTED MESSAGE", msg, outlen);
+#endif /* NDEBUG */
 	assert(outlen == FIRST_MSG_SIZE);
 	if (!valid_header(ctx, msg->header)) {
 		OPENSSL_free(msg);
@@ -394,12 +419,18 @@ static void *recv_encrypted_msg(PROTO_CTX *ctx, size_t *len)
 			OPENSSL_free(encrypted);
 			return NULL;
 		}
+#ifndef NDEBUG
+		cout_print_mem("ENCRYPTED MESSAGE RECEIVED", encrypted, REMAINING_SIZE(*len));
+#endif /* NDEBUG */
 		msg = decrypt_msg(ctx, encrypted, REMAINING_SIZE(*len), &outlen);
 		OPENSSL_free(encrypted);
 		if (!msg) {
 			OPENSSL_free(buf);
 			return NULL;
 		}
+#ifndef NDEBUG
+		cout_print_mem("DECRYPTED MESSAGE", msg, outlen);
+#endif /* NDEBUG */
 		assert(outlen == REMAINING_SIZE(*len));
 		if (!valid_header(ctx, msg->header)) {
 			OPENSSL_free(buf);
@@ -432,6 +463,9 @@ static struct msg *recv_msg(PROTO_CTX *ctx, size_t *len)
 		OPENSSL_free(msg);
 		return NULL;
 	}
+#ifndef NDEBUG
+	cout_print_mem("MESSAGE RECEIVED", msg, *len + sizeof(struct msg_header));
+#endif /* NDEBUG */
 	return msg;
 }
 

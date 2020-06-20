@@ -61,7 +61,6 @@ PROTO_CTX *proto_ctx_new(int socket, struct addrinfo *peeraddr,
 	ctx->last_send_nonce = 0;
 	ctx->last_recv_msg = NULL;
 	ctx->last_recv_msg_size = 0;
-	random_init();
 	return ctx;
 }
 
@@ -87,10 +86,10 @@ void proto_ctx_free(PROTO_CTX *ctx)
 	OPENSSL_free(ctx);
 }
 
-static struct msg_header create_header(PROTO_CTX *ctx, size_t len)
+static struct msg_header create_header(PROTO_CTX *ctx, size_t len, uint32_t nonce)
 {
 	assert(ctx);
-	ctx->last_send_nonce = random_nonce();
+	ctx->last_send_nonce = nonce;
 	ctx->send_counter++;
 	struct msg_header header = { MAGIC_NUMBER, ctx->send_counter,
 		ctx->recv_counter, len, ctx->last_send_nonce };
@@ -109,7 +108,12 @@ static struct msg *craft_msg(PROTO_CTX *ctx, const void *data, size_t len,
 		REPORT_ERR(EALLOC, "Can not allocate space for the messages to be sent.");
 		return NULL;
 	}
-	struct msg_header header = create_header(ctx, len);
+	uint32_t nonce = random_nonce();
+	if (nonce == 0) {
+		OPENSSL_free(msg);
+		return NULL;
+	}
+	struct msg_header header = create_header(ctx, len, nonce);
 	memcpy(msg, &header, sizeof(struct msg_header));
 	if (data) {
 		assert(len > 0);
@@ -118,7 +122,12 @@ static struct msg *craft_msg(PROTO_CTX *ctx, const void *data, size_t len,
 	}
 	if (second && len > FIRST_PL_SIZE) {
 		*second = msg + FIRST_MSG_SIZE;
-		header = create_header(ctx, len - FIRST_PL_SIZE);
+		nonce = random_nonce();
+		if (nonce == 0) {
+			OPENSSL_free(msg);
+			return NULL;
+		}
+		header = create_header(ctx, len - FIRST_PL_SIZE, nonce);
 		memcpy(*second, &header, sizeof(struct msg_header));
 		memcpy(*second + sizeof(struct msg_header),
 			data + FIRST_PL_SIZE, len - FIRST_PL_SIZE);

@@ -53,12 +53,12 @@ static void free_wrapper(void *addr, const char *file, int line)
 	}
 }
 
-void cout_enable_mem_debug()
+void cout_enable_mem_debug(void)
 {
 	CRYPTO_set_mem_functions(malloc_wrapper, realloc_wrapper, free_wrapper);
 }
 
-void cout_print_alloc_counts()
+void cout_print_alloc_counts(void)
 {
 	fprintf(stderr, "[MEMDBG] malloc_count = %u, realloc_count = %u, free_count = %u\n",
 		malloc_count, realloc_count, free_count);

@@ -9,7 +9,7 @@
 #define COLOR_RESET	"\033[0m"
 
 /* If ENABLE_COLORS is defined, enable output coloring on stderr. */
-static inline void __print_error_color()
+static inline void __print_error_color(void)
 {
 #ifdef ENABLE_COLORS
 	fputs(COLOR_ERROR, stderr);
@@ -17,7 +17,7 @@ static inline void __print_error_color()
 }
 
 /* Resets output color on stderr. */
-static inline void __reset_color()
+static inline void __reset_color(void)
 {
 #ifdef ENABLE_COLORS
 	fputs(COLOR_RESET, stderr);

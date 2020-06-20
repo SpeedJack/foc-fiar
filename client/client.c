@@ -55,7 +55,7 @@ static inline void print_help(const char *cmdname)
 }
 
 /* Prints package name and version, then exits. */
-static inline void print_version()
+static inline void print_version(void)
 {
 	puts(PACKAGE_STRING " (client)");
 	puts(OPENSSL_VERSION_TEXT);

@@ -11,7 +11,7 @@
  * returns the total number of characters read. The caller must be sure that
  * something is in the buffer, or the function will stuck on getchar() call.
  */
-unsigned int cin_flush_stdin()
+unsigned int cin_flush_stdin(void)
 {
 	char c;
 	unsigned int len;
@@ -41,7 +41,7 @@ int cin_read_line(char *buffer, int size)
 }
 
 /* Reads a non-blank character from stdin and flushes the rest of the buffer. */
-char cin_read_char()
+char cin_read_char(void)
 {
 	int c;
 	do {

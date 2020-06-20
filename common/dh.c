@@ -63,7 +63,7 @@ static DH *get_dh2048(void)
 	return dh;
 }
 
-DH_CTX *dh_ctx_new()
+DH_CTX *dh_ctx_new(void)
 {
 	DH_CTX *ctx = OPENSSL_malloc(sizeof(DH_CTX));
 	if (!ctx) {

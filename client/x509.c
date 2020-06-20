@@ -111,5 +111,4 @@ clean_return_error:
 		X509_STORE_CTX_free(ctx);
 	X509_STORE_free(store);
 	return false;
-
 }

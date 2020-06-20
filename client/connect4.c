@@ -95,7 +95,7 @@ static bool check_four(int row, int col)
 }
 
 /* Switches the current active player. */
-static inline void switch_player()
+static inline void switch_player(void)
 {
 	current_player = c4_is_my_turn() ? OPPONENT : PLAYER;
 }
@@ -104,20 +104,20 @@ static inline void switch_player()
  * Returns true if it's the turn of the user running the application;
  * false otherwise.
  */
-bool c4_is_my_turn()
+bool c4_is_my_turn(void)
 {
 	return current_player == PLAYER;
 }
 
 /* Returns true if the board is full; false otherwise. */
-bool c4_board_full()
+bool c4_board_full(void)
 {
 	return total_inserts == BOARD_ROWS*BOARD_COLS;
 }
 
 
 /* Returns the total number of disc inserted. */
-unsigned int c4_total_inserts()
+unsigned int c4_total_inserts(void)
 {
 	return total_inserts;
 }
@@ -134,7 +134,7 @@ void c4_init(bool first_player)
 }
 
 /* Prints the board. */
-void c4_print_board()
+void c4_print_board(void)
 {
 	printf("\n ");
 	for (int c = 0; c < BOARD_COLS;)

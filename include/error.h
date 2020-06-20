@@ -17,12 +17,12 @@ extern void error_set(enum error_code c, const char *msg);
 extern void error_print(void);
 extern void error_set_autoprint(bool value);
 
-static inline void error_enable_autoprint()
+static inline void error_enable_autoprint(void)
 {
 	error_set_autoprint(true);
 }
 
-static inline void error_disable_autoprint()
+static inline void error_disable_autoprint(void)
 {
 	error_set_autoprint(false);
 }

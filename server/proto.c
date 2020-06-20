@@ -18,12 +18,12 @@ typedef void *recv_func(PROTO_CTX *ctx, size_t *len);
 static struct error *last_error = NULL;
 static struct error invmsg_error = { INVMSG, "Received an invalid message." };
 
-struct error *proto_get_last_error()
+struct error *proto_get_last_error(void)
 {
 	return last_error;
 }
 
-void proto_clear_last_error()
+void proto_clear_last_error(void)
 {
 	if (last_error && last_error != &invmsg_error)
 		OPENSSL_free(last_error);

@@ -1,6 +1,7 @@
 #include "client/x509.h"
 #include "assertions.h"
 #include "error.h"
+#include "mem.h"
 #include <openssl/pem.h>
 #include <openssl/x509_vfy.h>
 #include <string.h>
@@ -31,10 +32,10 @@ X509_CRL *x509_read_crl(const char *filename)
 	return crl;
 }
 
-EVP_PKEY *x509_extract_pubkey(const X509 *cert)
+EVP_PKEY *x509_extract_pubkey(X509 *cert)
 {
 	assert(cert);
-	EVP_PKEY *pubkey = X509_get0_pubkey(cert);
+	EVP_PKEY *pubkey = X509_get_pubkey(cert);
 	if (!pubkey)
 		REPORT_ERR(EOSSL, "X509_get_pubkey() returned NULL.");
 	return pubkey;
@@ -59,6 +60,7 @@ char *x509_get_name_oneline(const X509 *cert)
 static bool x509_verify_name(const X509 *cert)
 {
 	char *name = x509_get_name_oneline(cert);
+	mem_register_alloc(name, strlen(name) + 1);
 	if (!name)
 		return false;
 	int res = strcmp(name, subject_name);

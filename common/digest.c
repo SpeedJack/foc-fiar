@@ -56,6 +56,8 @@ void digest_ctx_set_peerkey(DIGEST_CTX *ctx, EVP_PKEY *peerkey)
 
 void digest_ctx_free(DIGEST_CTX *ctx)
 {
+	EVP_PKEY_free(ctx->privkey);
+	EVP_PKEY_free(ctx->peerkey);
 	OPENSSL_clear_free(ctx, sizeof(DIGEST_CTX));
 }
 

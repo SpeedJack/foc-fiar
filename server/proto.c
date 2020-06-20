@@ -1,16 +1,8 @@
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif /* HAVE_CONFIG_H */
-
-#ifdef DEBUG_CODE
-#include "cout.h"
-#define SHA256_DIGEST_LENGTH		32
-#endif /* DEBUG_CODE */
-
 #include "server/proto.h"
 #include "assertions.h"
 #include "dh.h"
 #include "error.h"
+#include "mem.h"
 #include <string.h>
 
 typedef void *recv_func(PROTO_CTX *ctx, size_t *len);
@@ -137,9 +129,7 @@ bool proto_run_dh(PROTO_CTX *ctx)
 	unsigned char *secret = dh_derive_secret(dhctx, peer->key, (size_t)peer->len);
 	OPENSSL_free(peer);
 	if (secret) {
-#ifdef DEBUG_CODE
-		cout_print_mem("DIFFIE-HELLMAN HASHED SECRET", secret, SHA256_DIGEST_LENGTH);
-#endif /* DEBUG_CODE */
+		mem_dump("DIFFIE-HELLMAN HASHED SECRET", secret, 32);
 		proto_ctx_set_secret(ctx, secret);
 	}
 	dh_ctx_free(dhctx);

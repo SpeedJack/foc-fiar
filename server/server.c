@@ -1,9 +1,6 @@
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 #include "server/proto.h"
-#include "cout.h"
 #include "error.h"
+#include "mem.h"
 #include "net.h"
 #include "pem.h"
 #include <stdio.h>
@@ -11,9 +8,7 @@
 
 int main(int argc, char **argv)
 {
-#ifdef DEBUG_CODE
-	cout_enable_mem_debug();
-#endif /* DEBUG_CODE */
+	mem_enable_debug();
 	error_enable_autoprint();
 	X509* cert = pem_read_x509_file("server_cert.pem");
 	if (!cert)
@@ -49,6 +44,7 @@ int main(int argc, char **argv)
 		return 1;
 	if (!proto_send_cert(ctx, cert))
 		return 1;
+	X509_free(cert);
 	if (!proto_send_hello(ctx, hello->username, hello->nonce))
 		return 1;
 	OPENSSL_free(hello);
@@ -64,8 +60,7 @@ int main(int argc, char **argv)
 	printf("Message: %s\nLen: %lu\n", buf, msglen);
 	OPENSSL_free(buf);
 	proto_ctx_free(ctx);
-#ifdef DEBUG_CODE
-	cout_print_alloc_counts();
-#endif /* DEBUG_CODE */
+	net_close(sock);
+	mem_print_alloc_counts();
 	return 0;
 }

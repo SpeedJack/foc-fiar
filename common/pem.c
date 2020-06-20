@@ -62,14 +62,19 @@ unsigned char *pem_serialize_pubkey(EVP_PKEY *key, size_t *len)
 		BIO_free(bio);
 		return NULL;
 	}
-	unsigned char *pubkey;
-	*len = BIO_get_mem_data(bio, &pubkey);
-	if (*len <= 0 || !pubkey) {
+	char *buf;
+	*len = BIO_get_mem_data(bio, &buf);
+	if (*len <= 0 || !buf) {
 		REPORT_ERR(EOSSL, "BIO_get_mem_data() failed.");
+		//OPENSSL_free(buf);
 		BIO_free(bio);
 		return NULL;
 	}
-	BIO_set_close(bio, BIO_NOCLOSE);
+	unsigned char *pubkey = OPENSSL_malloc(*len);
+	if (!pubkey)
+		REPORT_ERR(EALLOC, "Can not allocate space for the serialized public key.");
+	memcpy(pubkey, buf, *len);
+	//OPENSSL_free(buf);
 	BIO_free(bio);
 	return pubkey;
 }
@@ -88,12 +93,8 @@ EVP_PKEY *pem_deserialize_pubkey(unsigned char *key, size_t len)
 		return NULL;
 	}
 	EVP_PKEY *pubkey = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
-	if (!pubkey) {
+	if (!pubkey)
 		REPORT_ERR(EOSSL, "PEM_read_bio_PUBKEY() returned NULL.");
-		BIO_free(bio);
-		return NULL;
-	}
-	BIO_set_close(bio, BIO_NOCLOSE); /* needed? */
 	BIO_free(bio);
 	return pubkey;
 }

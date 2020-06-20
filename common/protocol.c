@@ -2,19 +2,15 @@
 #include "config.h"
 #endif /* HAVE_CONFIG_H */
 
-#ifdef DEBUG_CODE
-#include "cout.h"
-#endif /* DEBUG_CODE */
-
 #include "protocol.h"
 #include "assertions.h"
 #include "digest.h"
 #include "error.h"
 #include "gcm.h"
+#include "mem.h"
 #include "net.h"
 #include "random.h"
 #include <string.h>
-#include <unistd.h>
 
 struct __attribute__((packed)) msg_header {
 	uint32_t magic;
@@ -87,10 +83,11 @@ void proto_ctx_free(PROTO_CTX *ctx)
 {
 	if (!ctx)
 		return;
-	close(ctx->socket);
-	OPENSSL_free(ctx->last_recv_msg);
 	digest_ctx_free(ctx->dctx);
 	gcm_ctx_free(ctx->gctx);
+	net_close(ctx->socket);
+	freeaddrinfo(ctx->peeraddr);
+	OPENSSL_free(ctx->last_recv_msg);
 	OPENSSL_free(ctx);
 }
 
@@ -258,9 +255,7 @@ static bool send_msg(PROTO_CTX *ctx, const void *data, size_t len,
 		OPENSSL_free(msg);
 		return false;
 	}
-#ifdef DEBUG_CODE
-	cout_print_mem("MESSAGE SENT", msg, outlen);
-#endif /* DEBUG_CODE */
+	mem_dump("MESSAGE SENT", msg, outlen);
 	OPENSSL_free(msg);
 	return true;
 }
@@ -325,9 +320,7 @@ static unsigned char *recv_signature(PROTO_CTX *ctx, uint32_t *len)
 		OPENSSL_free(sig);
 		return NULL;
 	}
-#ifdef DEBUG_CODE
-	cout_print_mem("SIGNATURE RECEIVED", sig, *len);
-#endif /* DEBUG_CODE */
+	mem_dump("SIGNATURE RECEIVED", sig, *len);
 	return sig;
 }
 
@@ -353,9 +346,7 @@ static void *decrypt_msg(PROTO_CTX *ctx, const void *data, size_t len,
 	unsigned char tag[16];
 	if (!net_recv(ctx->socket, tag, sizeof(tag), 0))
 		return NULL;
-#ifdef DEBUG_CODE
-	cout_print_mem("GCM TAG RECEIVED", tag, sizeof(tag));
-#endif /* DEBUG_CODE */
+	mem_dump("GCM TAG RECEIVED", tag, sizeof(tag));
 	gcm_ctx_set_nonce(ctx->gctx, ctx->last_send_nonce);
 	struct msg *msg = (struct msg *)gcm_decrypt(ctx->gctx,
 		(unsigned char *)data, len, tag);
@@ -394,17 +385,13 @@ static void *recv_encrypted_msg(PROTO_CTX *ctx, size_t *len)
 		OPENSSL_free(encrypted);
 		return NULL;
 	}
-#ifdef DEBUG_CODE
-	cout_print_mem("ENCRYPTED MESSAGE RECEIVED", encrypted, FIRST_MSG_SIZE);
-#endif /* DEBUG_CODE */
+	mem_dump("ENCRYPTED MESSAGE RECEIVED", encrypted, FIRST_MSG_SIZE);
 	size_t outlen;
 	struct msg *msg = decrypt_msg(ctx, encrypted, FIRST_MSG_SIZE, &outlen);
 	OPENSSL_free(encrypted);
 	if (!msg)
 		return NULL;
-#ifdef DEBUG_CODE
-	cout_print_mem("DECRYPTED MESSAGE", msg, outlen);
-#endif /* DEBUG_CODE */
+	mem_dump("DECRYPTED MESSAGE", msg, outlen);
 	assert(outlen == FIRST_MSG_SIZE);
 	if (!valid_header(ctx, msg->header)) {
 		OPENSSL_free(msg);
@@ -417,7 +404,7 @@ static void *recv_encrypted_msg(PROTO_CTX *ctx, size_t *len)
 		OPENSSL_free(msg);
 		return NULL;
 	}
-	memcpy(buf, msg->payload, FIRST_PL_SIZE);
+	memcpy(buf, msg->payload, *len > FIRST_PL_SIZE ? FIRST_PL_SIZE : *len);
 	OPENSSL_free(msg);
 	if (*len > FIRST_PL_SIZE) {
 		encrypted = OPENSSL_malloc(REMAINING_SIZE(*len));
@@ -432,26 +419,22 @@ static void *recv_encrypted_msg(PROTO_CTX *ctx, size_t *len)
 			OPENSSL_free(encrypted);
 			return NULL;
 		}
-#ifdef DEBUG_CODE
-		cout_print_mem("ENCRYPTED MESSAGE RECEIVED", encrypted, REMAINING_SIZE(*len));
-#endif /* DEBUG_CODE */
+		mem_dump("ENCRYPTED MESSAGE RECEIVED", encrypted, REMAINING_SIZE(*len));
 		msg = decrypt_msg(ctx, encrypted, REMAINING_SIZE(*len), &outlen);
 		OPENSSL_free(encrypted);
 		if (!msg) {
 			OPENSSL_free(buf);
 			return NULL;
 		}
-#ifdef DEBUG_CODE
-		cout_print_mem("DECRYPTED MESSAGE", msg, outlen);
-#endif /* DEBUG_CODE */
+		mem_dump("DECRYPTED MESSAGE", msg, outlen);
 		assert(outlen == REMAINING_SIZE(*len));
 		if (!valid_header(ctx, msg->header)) {
 			OPENSSL_free(buf);
 			OPENSSL_free(msg);
 			return NULL;
 		}
-		assert(msg->header.payload_size == REMAINING_SIZE(*len));
-		memcpy(buf + FIRST_PL_SIZE, msg->payload, REMAINING_SIZE(*len));
+		assert(msg->header.payload_size == *len - FIRST_PL_SIZE);
+		memcpy(buf + FIRST_PL_SIZE, msg->payload, *len - FIRST_PL_SIZE);
 		OPENSSL_free(msg);
 	}
 	return buf;
@@ -476,9 +459,7 @@ static struct msg *recv_msg(PROTO_CTX *ctx, size_t *len)
 		OPENSSL_free(msg);
 		return NULL;
 	}
-#ifdef DEBUG_CODE
-	cout_print_mem("MESSAGE RECEIVED", msg, *len + sizeof(struct msg_header));
-#endif /* DEBUG_CODE */
+	mem_dump("MESSAGE RECEIVED", msg, *len + sizeof(struct msg_header));
 	return msg;
 }
 

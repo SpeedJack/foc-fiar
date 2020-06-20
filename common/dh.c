@@ -107,10 +107,12 @@ unsigned char *dh_gen_pubkey(DH_CTX *dhctx, size_t *len)
 		REPORT_ERR(EOSSL, "EVP_PKEY_keygen() failed.");
 		goto clean_return_error;
 	}
+	EVP_PKEY_free(dh_params);
 	EVP_PKEY_CTX_free(ctx);
 	dhctx->privkey = privkey;
 	return pem_serialize_pubkey(privkey, len);
 clean_return_error:
+	EVP_PKEY_free(dh_params);
 	EVP_PKEY_CTX_free(ctx);
 	if (dh)
 		DH_free(dh);
@@ -119,6 +121,7 @@ clean_return_error:
 
 void dh_ctx_free(DH_CTX *ctx)
 {
+	EVP_PKEY_free(ctx->privkey);
 	OPENSSL_clear_free(ctx, sizeof(DH_CTX));
 }
 
@@ -157,11 +160,13 @@ unsigned char *dh_derive_secret(DH_CTX *dhctx, unsigned char *peerkey, size_t le
 		REPORT_ERR(EOSSL, "EVP_PKEY_derive() failed (2).");
 		goto clean_return_error;
 	}
+	EVP_PKEY_free(pkey);
 	EVP_PKEY_CTX_free(ctx);
 	unsigned char *hash = digest_sha256(secret, secretlen);
 	OPENSSL_clear_free(secret, secretlen);
 	return hash;
 clean_return_error:
+	EVP_PKEY_free(pkey);
 	if (ctx)
 		EVP_PKEY_CTX_free(ctx);
 	if (secret)

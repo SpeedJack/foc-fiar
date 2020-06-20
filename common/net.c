@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <netdb.h>
 #include <string.h>
+#include <unistd.h>
 
 #define LISTEN_BACKLOG		SOMAXCONN
 
@@ -92,6 +93,11 @@ int net_connect(struct addrinfo info)
 		return -1;
 	}
 	return sfd;
+}
+
+void net_close(int socket)
+{
+	close(socket);
 }
 
 bool net_recv(int socket, void *buf, size_t len, int flags)

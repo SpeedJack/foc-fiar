@@ -1,5 +1,8 @@
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif /* HAVE_CONFIG_H */
+
 #include "cout.h"
-#include "mem.h"
 #include "stringop.h"
 #include <openssl/bio.h>
 #include <stdio.h>
@@ -44,22 +47,5 @@ void cout_print_error(const char *errstr)
 	__print_error_color();
 	fputs(errstr, stderr);
 	__reset_color();
-	fputs("\n", stderr);
-}
-
-void cout_print_mem(const char *id, const void *mem, size_t len)
-{
-	size_t idlen = strlen(id);
-	for (unsigned int i = 0; i < 35 - idlen/2; i++)
-		putc('=', stderr);
-	putc(' ', stderr);
-	fputs(id, stderr);
-	putc(' ', stderr);
-	for (unsigned int i = 0; i < 36 - idlen/2 - (idlen % 2); i++)
-		putc('=', stderr);
-	fputs("\n", stderr);
-	mem_dump((const char *)mem, len);
-	for (unsigned int i = 0; i < 73; i++)
-		putc('=', stderr);
 	fputs("\n", stderr);
 }

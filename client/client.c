@@ -10,6 +10,7 @@
 #include "cout.h"
 #include "error.h"
 #include "net.h"
+#include "mem.h"
 #include "pem.h"
 #include "random.h"
 #include "stringop.h"
@@ -98,7 +99,10 @@ static void test(void)
 		return;
 	if (!x509_verify(cert, ca, crl))
 		return;
+	X509_free(ca);
+	X509_CRL_free(crl);
 	EVP_PKEY *peerkey = x509_extract_pubkey(cert);
+	X509_free(cert);
 	if (!peerkey)
 		return;
 	proto_ctx_set_peerkey(ctx, peerkey);
@@ -127,9 +131,7 @@ static void test(void)
 /* Client entry-point. */
 int main(int argc, char **argv)
 {
-#ifdef DEBUG_CODE
-	cout_enable_mem_debug();
-#endif /* DEBUG_CODE */
+	mem_enable_debug();
 	uint16_t server_port = 55555;
 	uint16_t listening_port = 50505;
 	char server_addr[254] = "";
@@ -182,8 +184,6 @@ int main(int argc, char **argv)
 
 	test();
 
-#ifdef DEBUG_CODE
-	cout_print_alloc_counts();
-#endif /* DEBUG_CODE */
+	mem_print_alloc_counts();
 	return 0;
 }

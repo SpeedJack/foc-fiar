@@ -48,6 +48,8 @@ typedef void *transform_cb(PROTO_CTX *ctx, const void *data, size_t len,
 #define FIRST_MSG_SIZE		54
 #define FIRST_PL_SIZE		(FIRST_MSG_SIZE - sizeof(struct msg_header))
 #define REMAINING_SIZE(total)	(total - FIRST_PL_SIZE + sizeof(struct msg_header))
+#define MAX_PL_SIZE		(1<<26)
+#define MAX_SIG_SIZE		MAX_PL_SIZE
 
 PROTO_CTX *proto_ctx_new(int socket, struct addrinfo *peeraddr,
 	EVP_PKEY *privkey, EVP_PKEY *peerkey)
@@ -296,6 +298,10 @@ static bool valid_header(PROTO_CTX *ctx, struct msg_header header)
 		REPORT_ERR(EINVACK, NULL);
 		return false;
 	}
+	if (header.payload_size > MAX_PL_SIZE) {
+		REPORT_ERR(ETOOBIG, "Received a message with a too long payload.");
+		return false;
+	}
 	ctx->last_ack = header.ack_msg;
 	ctx->last_recv_nonce = header.nonce;
 	return true;
@@ -306,6 +312,10 @@ static unsigned char *recv_signature(PROTO_CTX *ctx, uint32_t *len)
 	assert(ctx && len);
 	if (!net_recv(ctx->socket, len, sizeof(uint32_t), 0))
 		return NULL;
+	if (*len > MAX_SIG_SIZE) {
+		REPORT_ERR(ETOOBIG, "Received a message with a too long signature.");
+		return NULL;
+	}
 	unsigned char *sig = OPENSSL_malloc(*len);
 	if (!sig) {
 		REPORT_ERR(EALLOC, "Can not allocate space for message signature.");

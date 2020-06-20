@@ -67,7 +67,11 @@ void cout_print_alloc_counts(void)
 }
 #endif /* DEBUG_CODE */
 
+#define MAX_DUMP_SIZE (1<<16)
+
 void mem_dump(const char *addr, size_t len)
 {
-	BIO_dump_fp(stderr, addr, len);
+	BIO_dump_fp(stderr, addr, len > MAX_DUMP_SIZE ? MAX_DUMP_SIZE : len);
+	if (len > MAX_DUMP_SIZE)
+		fprintf(stderr, "... Truncated (too long) ... (total size: %#lx)\n", len);
 }

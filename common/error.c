@@ -17,6 +17,7 @@ static const char *errstr[] = {
 	[EFILE]		= "[EFILE] Error while opening a file.",
 	[ENET]		= "[ENET] Network error.",
 	[EINVMSG]	= "[EINVMSG] Received an invalid message.",
+	[ETOOBIG]	= "[ETOOBIG] Received message is too big.",
 	[EREPLAY]	= "[EREPLAY] Received a replayed message. You may be under attack!",
 	[EINVACK]	= "[EINVACK] Received an invalid ACK message.",
 	[EINVSIG]	= "[EINVSIG] Received a message signed with an invalid signature.",

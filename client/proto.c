@@ -56,7 +56,7 @@ bool proto_send_hello(PROTO_CTX *ctx, const char *username, uint16_t port,
 {
 	assert(username);
 	size_t msglen = MSG_SIZE_OF(struct client_hello);
-	struct message *msg = OPENSSL_malloc(msglen);
+	struct message *msg = OPENSSL_zalloc(msglen);
 	if (!msg) {
 		REPORT_ERR(EALLOC, "Can not allocate space for CLIENT_HELLO message.");
 		return false;

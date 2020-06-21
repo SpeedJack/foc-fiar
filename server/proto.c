@@ -2,7 +2,7 @@
 #include "assertions.h"
 #include "dh.h"
 #include "error.h"
-#include "mem.h"
+#include "memdbg.h"
 #include <string.h>
 
 typedef void *recv_func(PROTO_CTX *ctx, size_t *len);
@@ -129,7 +129,7 @@ bool proto_run_dh(PROTO_CTX *ctx)
 	unsigned char *secret = dh_derive_secret(dhctx, peer->key, (size_t)peer->len);
 	OPENSSL_free(peer);
 	if (secret) {
-		mem_dump("DIFFIE-HELLMAN HASHED SECRET", secret, 32);
+		memdbg_dump("DIFFIE-HELLMAN HASHED SECRET", secret, 32);
 		proto_ctx_set_secret(ctx, secret);
 	}
 	dh_ctx_free(dhctx);

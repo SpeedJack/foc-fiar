@@ -1,6 +1,6 @@
-#include "mem.h"
+#include "memdbg.h"
 
-#ifdef DEBUG_CODE
+#ifdef ENABLE_MEMDBG
 #include "stringop.h"
 #include <openssl/bio.h>
 #include <string.h>
@@ -55,12 +55,12 @@ static void free_wrapper(void *addr, const char *file, int line)
 	}
 }
 
-void _mem_enable_debug(void)
+void _memdbg_enable_debug(void)
 {
 	CRYPTO_set_mem_functions(malloc_wrapper, realloc_wrapper, free_wrapper);
 }
 
-void _mem_print_alloc_counts(void)
+void _memdbg_print_alloc_counts(void)
 {
 	fprintf(stderr, "[MEMDBG] malloc_count = %u (+%u), realloc_count = %u, free_count = %u\n",
 		malloc_count, other_alloc_count, realloc_count, free_count);
@@ -70,7 +70,7 @@ void _mem_print_alloc_counts(void)
 
 #define MAX_DUMP_SIZE (1<<16)
 
-void _mem_dump(const char *id, const void *mem, size_t len)
+void _memdbg_dump(const char *id, const void *mem, size_t len)
 {
 	size_t idlen = strlen(id);
 	for (unsigned int i = 0; i < 35 - idlen/2; i++)
@@ -89,7 +89,7 @@ void _mem_dump(const char *id, const void *mem, size_t len)
 	fputs("\n", stderr);
 }
 
-void _mem_register_alloc(const void *addr, size_t num, const char *file, int line)
+void _memdbg_register_alloc(const void *addr, size_t num, const char *file, int line)
 {
 	if (num == 0 || !addr)
 		return;
@@ -98,4 +98,4 @@ void _mem_register_alloc(const void *addr, size_t num, const char *file, int lin
 		file, line, num, addr);
 }
 
-#endif /* DEBUG_CODE */
+#endif /* ENABLE_MEMDBG */

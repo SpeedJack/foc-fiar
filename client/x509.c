@@ -1,7 +1,7 @@
 #include "client/x509.h"
 #include "assertions.h"
 #include "error.h"
-#include "mem.h"
+#include "memdbg.h"
 #include <openssl/pem.h>
 #include <openssl/x509_vfy.h>
 #include <string.h>
@@ -60,7 +60,7 @@ char *x509_get_name_oneline(const X509 *cert)
 static bool x509_verify_name(const X509 *cert)
 {
 	char *name = x509_get_name_oneline(cert);
-	mem_register_alloc(name, strlen(name) + 1);
+	memdbg_register_alloc(name, strlen(name) + 1);
 	if (!name)
 		return false;
 	int res = strcmp(name, subject_name);

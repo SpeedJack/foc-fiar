@@ -1,6 +1,6 @@
 #include "server/proto.h"
 #include "error.h"
-#include "mem.h"
+#include "memdbg.h"
 #include "net.h"
 #include "pem.h"
 #include <stdio.h>
@@ -8,7 +8,7 @@
 
 int main(int argc, char **argv)
 {
-	mem_enable_debug();
+	memdbg_enable_debug();
 	error_enable_autoprint();
 	X509* cert = pem_read_x509_file("server_cert.pem");
 	if (!cert)
@@ -61,6 +61,6 @@ int main(int argc, char **argv)
 	OPENSSL_free(buf);
 	proto_ctx_free(ctx);
 	net_close(sock);
-	mem_print_alloc_counts();
+	memdbg_print_alloc_counts();
 	return 0;
 }

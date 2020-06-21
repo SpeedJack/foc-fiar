@@ -7,7 +7,7 @@
 #include "digest.h"
 #include "error.h"
 #include "gcm.h"
-#include "mem.h"
+#include "memdbg.h"
 #include "net.h"
 #include "random.h"
 #include <string.h>
@@ -255,7 +255,7 @@ static bool send_msg(PROTO_CTX *ctx, const void *data, size_t len,
 		OPENSSL_free(msg);
 		return false;
 	}
-	mem_dump("MESSAGE SENT", msg, outlen);
+	memdbg_dump("MESSAGE SENT", msg, outlen);
 	OPENSSL_free(msg);
 	return true;
 }
@@ -320,7 +320,7 @@ static unsigned char *recv_signature(PROTO_CTX *ctx, uint32_t *len)
 		OPENSSL_free(sig);
 		return NULL;
 	}
-	mem_dump("SIGNATURE RECEIVED", sig, *len);
+	memdbg_dump("SIGNATURE RECEIVED", sig, *len);
 	return sig;
 }
 
@@ -346,7 +346,7 @@ static void *decrypt_msg(PROTO_CTX *ctx, const void *data, size_t len,
 	unsigned char tag[16];
 	if (!net_recv(ctx->socket, tag, sizeof(tag)))
 		return NULL;
-	mem_dump("GCM TAG RECEIVED", tag, sizeof(tag));
+	memdbg_dump("GCM TAG RECEIVED", tag, sizeof(tag));
 	gcm_ctx_set_nonce(ctx->gctx, ctx->last_send_nonce);
 	struct msg *msg = (struct msg *)gcm_decrypt(ctx->gctx,
 		(unsigned char *)data, len, tag);
@@ -384,13 +384,13 @@ static struct msg *recv_single_encrypted_msg(PROTO_CTX *ctx, size_t len)
 		OPENSSL_free(encrypted);
 		return NULL;
 	}
-	mem_dump("ENCRYPTED MESSAGE RECEIVED", encrypted, len);
+	memdbg_dump("ENCRYPTED MESSAGE RECEIVED", encrypted, len);
 	size_t outlen;
 	struct msg *msg = decrypt_msg(ctx, encrypted, len, &outlen);
 	OPENSSL_free(encrypted);
 	if (!msg)
 		return NULL;
-	mem_dump("DECRYPTED MESSAGE", msg, outlen);
+	memdbg_dump("DECRYPTED MESSAGE", msg, outlen);
 	assert(outlen == len);
 	if (!valid_header(ctx, msg->header)) {
 		OPENSSL_free(msg);
@@ -446,7 +446,7 @@ static struct msg *recv_msg(PROTO_CTX *ctx, size_t *len)
 		OPENSSL_free(msg);
 		return NULL;
 	}
-	mem_dump("MESSAGE RECEIVED", msg, *len + sizeof(struct msg_header));
+	memdbg_dump("MESSAGE RECEIVED", msg, *len + sizeof(struct msg_header));
 	return msg;
 }
 

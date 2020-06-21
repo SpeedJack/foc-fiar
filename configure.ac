@@ -32,11 +32,10 @@ AC_ARG_ENABLE([warnings],
 	[warnings=yes],
 	[warnings=no])
 
-AC_ARG_ENABLE([debug],
-	[AS_HELP_STRING([--enable-debug], [include debug symbols and disable
-		optimization])],
-	[debug=yes],
-	[debug=no])
+AC_ARG_ENABLE([memdbg],
+	[AS_HELP_STRING([--enable-memdbg], [enable MEMDBG module])],
+	[memdbg=yes],
+	[memdbg=no])
 
 # Checks for programs.
 AC_PROG_CC
@@ -88,16 +87,17 @@ if test "x$assertions" = "xno"; then
 	AC_DEFINE([NDEBUG], [1], [Disable assertions.])
 fi
 
-# Checks for compiler flags
+if test "x$memdbg" = "xyes"; then
+	AC_DEFINE([ENABLE_MEMDBG], [1], [Enable MEMDBG module.])
+fi
+
+# Add compiler flags
 if test "x$warnings" = "xyes"; then
 	CC_CHECK_CFLAGS_APPEND([-Wall -Wextra], [], [])
 fi
 
-if test "x$debug" = "xyes"; then
-	CC_CHECK_CFLAGS_APPEND([-O0 -Og -g -g3 -ggdb3], [], [])
-	AC_DEFINE([DEBUG_CODE], [1], [Enable debug code.])
-else
-	CC_CHECK_CFLAG_APPEND([-O2])
+if test "x$memdbg" = "xyes"; then
+	CC_CHECK_CFLAGS_APPEND([-O0 -Og -g3 -ggdb3], [], [])
 fi
 
 CC_ATTRIBUTE_PACKED

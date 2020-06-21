@@ -10,7 +10,7 @@
 #include "cout.h"
 #include "error.h"
 #include "net.h"
-#include "mem.h"
+#include "memdbg.h"
 #include "pem.h"
 #include "random.h"
 #include "stringop.h"
@@ -131,7 +131,7 @@ static void test(void)
 /* Client entry-point. */
 int main(int argc, char **argv)
 {
-	mem_enable_debug();
+	memdbg_enable_debug();
 	uint16_t server_port = 55555;
 	uint16_t listening_port = 50505;
 	char server_addr[254] = "";
@@ -184,6 +184,6 @@ int main(int argc, char **argv)
 
 	test();
 
-	mem_print_alloc_counts();
+	memdbg_print_alloc_counts();
 	return 0;
 }

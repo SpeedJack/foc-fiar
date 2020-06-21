@@ -50,7 +50,7 @@ int main(int argc, char **argv)
 	OPENSSL_free(hello);
 	if (!proto_run_dh(ctx))
 		return 1;
-	char *dummymsg = "msg msg msg";
+	char *dummymsg = "The quick brown fox jumps over a lazy dog. The quick brown fox jumps over a lazy dog.";
 	if (!proto_send_gcm(ctx, dummymsg, strlen(dummymsg) + 1))
 		return 1;
 	size_t msglen;

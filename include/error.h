@@ -27,14 +27,11 @@ static inline void error_disable_autoprint(void)
 	error_set_autoprint(false);
 }
 
-#define _REPORT_ERR(code, msg, file, func, line) ({			\
-	if (msg)							\
-		error_setf(code, "%s:%d:%s(): %s",			\
-			file, line, func, msg);				\
-	else								\
-		error_setf(code, "Error reported by %s() at %s:%d.",	\
-			func, file, line);				\
-	})
+#define _REPORT_ERR(code, msg, file, func, line)			\
+	error_setf(code, msg ? "%s:%d:%s(): %s"				\
+			: "Error reported by %3$s() at %2$s:%1$d.",	\
+		file, line, func, msg)
+
 #define REPORT_ERR(code, msg)						\
 	_REPORT_ERR(code, msg, __FILE__ , __func__, __LINE__)
 

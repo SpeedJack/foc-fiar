@@ -115,7 +115,7 @@ static struct msg_header create_header(PROTO_CTX *ctx, size_t len, uint32_t nonc
 	return header;
 }
 
-static struct msg *craft_msg(PROTO_CTX *ctx, const void *data, size_t len,
+static struct msg *craft_msg(PROTO_CTX *ctx, const unsigned char *data, size_t len,
 	size_t *outlen, struct msg **second)
 {
 	assert(ctx && outlen);
@@ -125,7 +125,7 @@ static struct msg *craft_msg(PROTO_CTX *ctx, const void *data, size_t len,
 	*outlen = !second ? len + sizeof(struct msg_header)
 		: (FIRST_MSG_SIZE + (len > FIRST_PL_SIZE
 					? REMAINING_SIZE(len) : 0));
-	void *msg = OPENSSL_zalloc(*outlen);
+	struct msg *msg = OPENSSL_zalloc(*outlen);
 	if (!msg) {
 		REPORT_ERR(EALLOC, "Can not allocate space for the messages to be sent.");
 		return NULL;
@@ -134,11 +134,11 @@ static struct msg *craft_msg(PROTO_CTX *ctx, const void *data, size_t len,
 	memcpy(msg, &header, sizeof(struct msg_header));
 	if (data) {
 		assert(len > 0);
-		memcpy(msg + sizeof(struct msg_header), data,
+		memcpy((char *)msg + sizeof(struct msg_header), data,
 			(second && len > FIRST_PL_SIZE) ? FIRST_PL_SIZE : len);
 	}
 	if (second && len > FIRST_PL_SIZE) {
-		*second = msg + FIRST_MSG_SIZE;
+		*second = (struct msg *)(((char *)msg) + FIRST_MSG_SIZE);
 		nonce = random_nonce();
 		if (nonce == 0) {
 			OPENSSL_clear_free(msg, FIRST_MSG_SIZE);
@@ -146,7 +146,7 @@ static struct msg *craft_msg(PROTO_CTX *ctx, const void *data, size_t len,
 		}
 		header = create_header(ctx, len - FIRST_PL_SIZE, nonce);
 		memcpy(*second, &header, sizeof(struct msg_header));
-		memcpy(*second + sizeof(struct msg_header),
+		memcpy((char *)(*second) + sizeof(struct msg_header),
 			data + FIRST_PL_SIZE, len - FIRST_PL_SIZE);
 	}
 	return msg;
@@ -160,7 +160,7 @@ static void *encrypt_single_msg(PROTO_CTX *ctx, const struct msg *msg,
 	if (!ct)
 		return NULL;
 	*outlen = len + sizeof(tag);
-	void *buf = OPENSSL_malloc(*outlen);
+	unsigned char *buf = OPENSSL_malloc(*outlen);
 	if (!buf) {
 		REPORT_ERR(EALLOC, "Can not allocate space for the encrypted message to be sent.");
 		OPENSSL_free(ct);
@@ -177,7 +177,7 @@ static void *encrypt_msg(PROTO_CTX *ctx, const void *data, size_t len,
 {
 	assert(ctx && ctx->gctx && data && outlen);
 	struct msg *second = NULL;
-	struct msg *msg = craft_msg(ctx, data, len, outlen, &second);
+	struct msg *msg = craft_msg(ctx, (unsigned char *)data, len, outlen, &second);
 	if (!msg)
 		return NULL;
 	size_t firstsize;
@@ -189,7 +189,7 @@ static void *encrypt_msg(PROTO_CTX *ctx, const void *data, size_t len,
 	size_t secondsize = 0;
 	unsigned char *nextct = NULL;
 	if (second) {
-		nextct = encrypt_single_msg(ctx, msg + FIRST_MSG_SIZE,
+		nextct = encrypt_single_msg(ctx, (struct msg *)(((char *)msg) + FIRST_MSG_SIZE),
 			*outlen - FIRST_MSG_SIZE, &secondsize);
 		if (!nextct) {
 			OPENSSL_free(ct);
@@ -199,7 +199,7 @@ static void *encrypt_msg(PROTO_CTX *ctx, const void *data, size_t len,
 	}
 	OPENSSL_clear_free(msg, *outlen);
 	*outlen = firstsize + secondsize;
-	void *buf = OPENSSL_malloc(*outlen);
+	unsigned char *buf = OPENSSL_malloc(*outlen);
 	if (!buf) {
 		REPORT_ERR(EALLOC, "Can not allocate space for the encrypted messages to be sent.");
 		OPENSSL_free(ct);
@@ -220,7 +220,7 @@ static void *sign_msg(PROTO_CTX *ctx, const void *data, size_t len,
 {
 	assert(ctx && ctx->dctx && data && outlen);
 	size_t msglen;
-	struct msg *msg = craft_msg(ctx, data, len, &msglen, NULL);
+	struct msg *msg = craft_msg(ctx, (unsigned char *)data, len, &msglen, NULL);
 	if (!msg)
 		return NULL;
 	size_t slen;
@@ -233,7 +233,7 @@ static void *sign_msg(PROTO_CTX *ctx, const void *data, size_t len,
 	assert(slen > 0);
 	uint32_t siglen = (uint32_t)slen;
 	*outlen = msglen + sizeof(uint32_t) + slen;
-	void *buf = OPENSSL_malloc(*outlen);
+	unsigned char *buf = OPENSSL_malloc(*outlen);
 	if (!buf) {
 		REPORT_ERR(EALLOC, "Can not allocate space for the signed message to be sent.");
 		OPENSSL_free(msg);
@@ -251,7 +251,7 @@ static void *sign_msg(PROTO_CTX *ctx, const void *data, size_t len,
 static void *plain_msg(PROTO_CTX *ctx, const void *data, size_t len,
 	size_t *outlen)
 {
-	return craft_msg(ctx, data, len, outlen, NULL);
+	return craft_msg(ctx, (unsigned char *)data, len, outlen, NULL);
 }
 
 static bool send_msg(PROTO_CTX *ctx, const void *data, size_t len,
@@ -436,7 +436,7 @@ static struct msg *recv_encrypted_msg(PROTO_CTX *ctx, size_t *len)
 			return NULL;
 		}
 		assert(msg->header.payload_size == *len - FIRST_PL_SIZE);
-		memcpy(buf + FIRST_MSG_SIZE, msg->payload, *len - FIRST_PL_SIZE);
+		memcpy((char *)buf + FIRST_MSG_SIZE, msg->payload, *len - FIRST_PL_SIZE);
 		OPENSSL_clear_free(msg, REMAINING_SIZE(*len));
 	}
 	return buf;

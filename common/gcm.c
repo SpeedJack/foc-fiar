@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_GCM_OPERATIONS	1<<31
+#define MAX_GCM_OPERATIONS	(uint32_t)1<<31
 
 struct gcm_ctx {
 	unsigned char key[16];

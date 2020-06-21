@@ -2,6 +2,7 @@
 #include "assertions.h"
 #include "digest.h"
 #include "error.h"
+#include "memdbg.h"
 #include <openssl/evp.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -24,6 +25,8 @@ GCM_CTX *gcm_ctx_new(const unsigned char *secret)
 	}
 	memcpy(&ctx->key, secret, sizeof(ctx->key));
 	memcpy(&ctx->iv, secret + 20, sizeof(ctx->iv));
+	memdbg_dump("GCM KEY", ctx->key, sizeof(ctx->key));
+	memdbg_dump("GCM FIRST IV (NOT USED)", ctx->iv, sizeof(ctx->iv));
 	ctx->nonce = 0;
 	ctx->enc_counter = 0;
 	ctx->dec_counter = 0;
@@ -56,6 +59,7 @@ static bool ctx_update(struct gcm_ctx *ctx, bool enc)
 		return false;
 	}
 	memcpy(ctx->iv, &hash[9], sizeof(ctx->iv));
+	memdbg_dump("GCM NEW IV", ctx->iv, sizeof(ctx->iv));
 	OPENSSL_free(input);
 	ctx->enc_counter++;
 	ctx->dec_counter++;

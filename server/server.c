@@ -58,7 +58,6 @@ int main(int argc, char **argv)
 	if (!buf)
 		return 1;
 	printf("Message: %s\nLen: %lu\n", buf, msglen);
-	OPENSSL_free(buf);
 	proto_ctx_free(ctx);
 	net_close(sock);
 	return 0;

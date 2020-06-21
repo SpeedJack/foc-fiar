@@ -121,7 +121,6 @@ static void test(void)
 	if (!buf)
 		return;
 	printf("Message: %s\nLen: %lu\n", buf, len);
-	OPENSSL_free(buf);
 	char *msg = "another message.";
 	if (!proto_send_gcm(ctx, msg, strlen(msg) + 1))
 		return;

@@ -45,7 +45,7 @@ static void *recv_message(PROTO_CTX *ctx, enum msg_type type, size_t *len,
 		REPORT_ERR(EPEERERR, last_error->message);
 		return NULL;
 	}
-	OPENSSL_free(buf);
+	OPENSSL_clear_free(buf, msglen - sizeof(struct message));
 	last_error = &invmsg_error;
 	return NULL;
 }
@@ -73,11 +73,12 @@ bool proto_send_hello(PROTO_CTX *ctx, const char *username, uint16_t port,
 
 X509 *proto_recv_cert(PROTO_CTX *ctx)
 {
-	struct server_cert *msg = recv_message(ctx, SERVER_CERT, NULL, proto_recv);
+	size_t msglen;
+	struct server_cert *msg = recv_message(ctx, SERVER_CERT, &msglen, proto_recv);
 	if (!msg)
 		return NULL;
 	X509* cert = x509_deserialize(msg->cert, (size_t)msg->len);
-	OPENSSL_free(msg);
+	OPENSSL_clear_free(msg, msglen);
 	return cert;
 }
 
@@ -89,6 +90,9 @@ struct server_hello *proto_recv_hello(PROTO_CTX *ctx)
 bool proto_run_dh(PROTO_CTX *ctx)
 {
 	assert(ctx);
+	uint32_t nonce = random_nonce();
+	if (nonce == 0)
+		return false;
 	DH_CTX *dhctx = dh_ctx_new();
 	size_t pklen;
 	unsigned char *pk = dh_gen_pubkey(dhctx, &pklen);
@@ -99,31 +103,30 @@ bool proto_run_dh(PROTO_CTX *ctx)
 	struct message *msg = OPENSSL_malloc(MSG_SIZE_OF(struct dhkey) + pklen);
 	msg->type = DHKEY;
 	struct dhkey *my = (struct dhkey *)msg->body;
-	my->nonce = random_nonce();
+	my->nonce = nonce;
 	my->len = (uint32_t)pklen;
 	memcpy(my->key, pk, pklen);
-	OPENSSL_free(pk);
+	OPENSSL_clear_free(pk, pklen);
 	if (!proto_send_sign(ctx, msg, MSG_SIZE_OF(struct dhkey) + pklen)) {
-		OPENSSL_free(msg);
+		OPENSSL_clear_free(msg, MSG_SIZE_OF(struct dhkey) + pklen);
 		dh_ctx_free(dhctx);
 		return false;
 	}
-	struct dhkey *peer = (struct dhkey *)recv_message(ctx, DHKEY, NULL, proto_recv_verify);
+	OPENSSL_clear_free(msg, MSG_SIZE_OF(struct dhkey) + pklen);
+	size_t peerlen;
+	struct dhkey *peer = (struct dhkey *)recv_message(ctx, DHKEY, &peerlen, proto_recv_verify);
 	if (!peer) {
-		OPENSSL_free(msg);
 		dh_ctx_free(dhctx);
 		return false;
 	}
-	if (peer->nonce != my->nonce) {
+	if (peer->nonce != nonce) {
 		REPORT_ERR(EINVMSG, "Received a signed message with a wrong nonce.");
-		OPENSSL_free(peer);
-		OPENSSL_free(msg);
+		OPENSSL_clear_free(peer, peerlen);
 		dh_ctx_free(dhctx);
 		return false;
 	}
-	OPENSSL_free(msg);
 	unsigned char *secret = dh_derive_secret(dhctx, peer->key, (size_t)peer->len);
-	OPENSSL_free(peer);
+	OPENSSL_clear_free(peer, peerlen);
 	if (secret) {
 		proto_ctx_set_secret(ctx, secret);
 		memset(secret, 0, DH_SECRET_LENGTH);

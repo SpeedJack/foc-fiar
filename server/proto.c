@@ -44,7 +44,7 @@ static void *recv_message(PROTO_CTX *ctx, enum msg_type type, size_t *len,
 		REPORT_ERR(EPEERERR, last_error->message);
 		return NULL;
 	}
-	OPENSSL_free(buf);
+	OPENSSL_clear_free(buf, msglen - sizeof(struct message));
 	last_error = &invmsg_error;
 	return NULL;
 }
@@ -100,7 +100,8 @@ bool proto_send_hello(PROTO_CTX *ctx, const char *username, uint32_t nonce)
 bool proto_run_dh(PROTO_CTX *ctx)
 {
 	assert(ctx);
-	struct dhkey *peer = (struct dhkey *)recv_message(ctx, DHKEY, NULL, proto_recv_verify);
+	size_t peerlen;
+	struct dhkey *peer = (struct dhkey *)recv_message(ctx, DHKEY, &peerlen, proto_recv_verify);
 	if (!peer)
 		return false;
 	DH_CTX *dhctx = dh_ctx_new();
@@ -117,16 +118,16 @@ bool proto_run_dh(PROTO_CTX *ctx)
 	my->nonce = peer->nonce;
 	my->len = (uint32_t)pklen;
 	memcpy(my->key, pk, pklen);
-	OPENSSL_free(pk);
+	OPENSSL_clear_free(pk, pklen);
 	if (!proto_send_sign(ctx, msg, MSG_SIZE_OF(struct dhkey) + pklen)) {
-		OPENSSL_free(peer);
-		OPENSSL_free(msg);
+		OPENSSL_clear_free(peer, peerlen);
+		OPENSSL_clear_free(msg, MSG_SIZE_OF(struct dhkey) + pklen);
 		dh_ctx_free(dhctx);
 		return false;
 	}
-	OPENSSL_free(msg);
+	OPENSSL_clear_free(msg, MSG_SIZE_OF(struct dhkey) + pklen);
 	unsigned char *secret = dh_derive_secret(dhctx, peer->key, (size_t)peer->len);
-	OPENSSL_free(peer);
+	OPENSSL_clear_free(peer, peerlen);
 	if (secret) {
 		proto_ctx_set_secret(ctx, secret);
 		memset(secret, 0, DH_SECRET_LENGTH);

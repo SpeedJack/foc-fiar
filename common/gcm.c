@@ -35,7 +35,7 @@ GCM_CTX *gcm_ctx_new(const unsigned char *secret)
 
 void gcm_ctx_free(GCM_CTX *ctx)
 {
-	OPENSSL_free(ctx);
+	OPENSSL_clear_free(ctx, sizeof(GCM_CTX));
 }
 
 void gcm_ctx_set_nonce(GCM_CTX *ctx, uint32_t nonce)

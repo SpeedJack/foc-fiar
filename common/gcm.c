@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MAX_GCM_OPERATIONS	1<<31
+
 struct gcm_ctx {
 	unsigned char key[16];
 	unsigned char iv[12];
@@ -45,6 +47,10 @@ void gcm_ctx_set_nonce(GCM_CTX *ctx, uint32_t nonce)
 
 static bool ctx_update(struct gcm_ctx *ctx, bool enc)
 {
+	if (ctx->enc_counter + ctx->dec_counter >= MAX_GCM_OPERATIONS) {
+		REPORT_ERR(ETOOMUCH, NULL);
+		return false;
+	}
 	unsigned char *input = OPENSSL_malloc(sizeof(ctx->iv) + 2*sizeof(uint32_t));
 	if (!input) {
 		REPORT_ERR(EALLOC, "Can not allocate space for GCM IV derivation.");
@@ -61,8 +67,7 @@ static bool ctx_update(struct gcm_ctx *ctx, bool enc)
 	memcpy(ctx->iv, &hash[9], sizeof(ctx->iv));
 	memdbg_dump("GCM NEW IV", ctx->iv, sizeof(ctx->iv));
 	OPENSSL_free(input);
-	ctx->enc_counter++;
-	ctx->dec_counter++;
+	enc ? ctx->enc_counter++ : ctx->dec_counter++;
 	return true;
 }
 

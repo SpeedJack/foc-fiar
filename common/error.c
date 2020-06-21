@@ -22,6 +22,7 @@ static const char *errstr[] = {
 	[EINVACK]	= "[EINVACK] Received an invalid ACK message.",
 	[EINVSIG]	= "[EINVSIG] Received a message signed with an invalid signature.",
 	[EGCM]		= "[EGCM] Error while encrypting/decrypting a GCM message.",
+	[ETOOMUCH]	= "[ETOOMUCH] Performed too much GCM operations, restart the application to reinitialize GCM key and IV.",
 	[EINVCERT]	= "[EINVCERT] Server certificate is not valid.",
 	[EPEERERR]	= "[EPEERERR] Received an error message from peer.",
 	[EOSSL]		= "[EOSSL] Unknown OpenSSL error.",

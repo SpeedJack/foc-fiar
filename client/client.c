@@ -184,6 +184,5 @@ int main(int argc, char **argv)
 
 	test();
 
-	memdbg_print_alloc_counts();
 	return 0;
 }

@@ -4,7 +4,6 @@
 #include "stringop.h"
 #include <openssl/bio.h>
 #include <string.h>
-#include <openssl/crypto.h>
 
 static unsigned int malloc_count = 0;
 static unsigned int realloc_count = 0;

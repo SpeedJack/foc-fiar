@@ -61,6 +61,5 @@ int main(int argc, char **argv)
 	OPENSSL_free(buf);
 	proto_ctx_free(ctx);
 	net_close(sock);
-	memdbg_print_alloc_counts();
 	return 0;
 }

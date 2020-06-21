@@ -3,6 +3,8 @@
 
 #include <stddef.h>
 
+#define DH_SECRET_LENGTH		32
+
 struct dh_ctx;
 typedef struct dh_ctx DH_CTX;
 

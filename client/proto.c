@@ -2,7 +2,6 @@
 #include "assertions.h"
 #include "dh.h"
 #include "error.h"
-#include "memdbg.h"
 #include "random.h"
 #include <string.h>
 
@@ -126,8 +125,8 @@ bool proto_run_dh(PROTO_CTX *ctx)
 	unsigned char *secret = dh_derive_secret(dhctx, peer->key, (size_t)peer->len);
 	OPENSSL_free(peer);
 	if (secret) {
-		memdbg_dump("DIFFIE-HELLMAN HASHED SECRET", secret, 32);
 		proto_ctx_set_secret(ctx, secret);
+		memset(secret, 0, DH_SECRET_LENGTH);
 	}
 	dh_ctx_free(dhctx);
 	return !!secret;

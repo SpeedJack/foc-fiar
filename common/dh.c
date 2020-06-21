@@ -2,6 +2,7 @@
 #include "assertions.h"
 #include "digest.h"
 #include "error.h"
+#include "memdbg.h"
 #include "pem.h"
 #include <openssl/dh.h>
 #include <openssl/evp.h>
@@ -164,6 +165,7 @@ unsigned char *dh_derive_secret(DH_CTX *dhctx, unsigned char *peerkey, size_t le
 	EVP_PKEY_CTX_free(ctx);
 	unsigned char *hash = digest_sha256(secret, secretlen);
 	OPENSSL_clear_free(secret, secretlen);
+	memdbg_dump("DIFFIE-HELLMAN HASHED SECRET", hash, SHA256_DIGEST_LENGTH);
 	return hash;
 clean_return_error:
 	EVP_PKEY_free(pkey);

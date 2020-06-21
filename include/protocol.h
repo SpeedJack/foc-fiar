@@ -14,7 +14,7 @@ typedef struct proto_ctx PROTO_CTX;
 extern PROTO_CTX *proto_ctx_new(int socket, struct addrinfo *peeraddr,
 	EVP_PKEY *privkey, EVP_PKEY *peerkey);
 extern void proto_ctx_set_peerkey(PROTO_CTX *ctx, EVP_PKEY *peerkey);
-extern void proto_ctx_set_secret(PROTO_CTX *ctx, unsigned char *secret);
+extern void proto_ctx_set_secret(PROTO_CTX *ctx, const unsigned char *secret);
 extern void proto_ctx_free(PROTO_CTX *ctx);
 extern bool proto_send(PROTO_CTX *ctx, const void *data, const size_t len);
 extern bool proto_send_sign(PROTO_CTX *ctx, const void *data, const size_t len);

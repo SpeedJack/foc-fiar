@@ -74,7 +74,7 @@ void proto_ctx_set_peerkey(PROTO_CTX *ctx, EVP_PKEY *peerkey)
 	digest_ctx_set_peerkey(ctx->dctx, peerkey);
 }
 
-void proto_ctx_set_secret(PROTO_CTX *ctx, unsigned char *secret)
+void proto_ctx_set_secret(PROTO_CTX *ctx, const unsigned char *secret)
 {
 	ctx->gctx = gcm_ctx_new(secret);
 }

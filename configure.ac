@@ -92,6 +92,8 @@ if test "x$memdbg" = "xyes"; then
 fi
 
 # Add compiler flags
+CC_CHECK_CFLAGS_APPEND([-fno-builtin-memset], [], [])
+
 if test "x$warnings" = "xyes"; then
 	CC_CHECK_CFLAGS_APPEND([-Wall -Wextra], [], [])
 fi

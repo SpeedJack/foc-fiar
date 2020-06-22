@@ -1,19 +1,62 @@
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#else
+#define PACKAGE_STRING	"connect-4 1.0.0"
+#endif /* HAVE_CONFIG_H */
+
 #include "server/proto.h"
+#include "cout.h"
 #include "error.h"
 #include "memdbg.h"
 #include "net.h"
 #include "pem.h"
+#include "stringop.h"
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
-int main(int argc, char **argv)
+#define USAGE_STRING	\
+	"Usage: %s [-h] [-v] [-p <port>] [-c <cert-file>] [-k <key-file>] [-d <userkeys-dir>]"
+
+#define DEFAULT_PORT		8888
+#define DEFAULT_CERT_FILE	"server_cert.pem"
+#define DEFAULT_KEY_FILE	"server_privkey.pem"
+
+static struct {
+	uint16_t port;
+	char cert_file[PATH_MAX];
+	char privkey_file[PATH_MAX];
+	char userkey_dir[PATH_MAX];
+} config = { DEFAULT_PORT, DEFAULT_CERT_FILE, DEFAULT_KEY_FILE, "" };
+
+/* Prints help message and exits. */
+static inline void print_help(const char *cmdname)
 {
-	memdbg_enable_debug();
+	printf(USAGE_STRING "\n\n"
+		"-h:\tprints this message and exits\n"
+		"-v:\tprints version infos and exits\n"
+		"-p:\tspecifies the listening port\n"
+		"-c:\tspecifies the certificate file\n"
+		"-k:\tspecifies the private key file\n"
+		"-d:\tspecifies the directory where users' public keys are placed\n",
+		cmdname);
+}
+
+/* Prints package name and version, then exits. */
+static inline void print_version(void)
+{
+	puts(PACKAGE_STRING " (server)");
+	puts(OPENSSL_VERSION_TEXT);
+}
+
+static int test(void)
+{
 	error_enable_autoprint();
 	X509* cert = pem_read_x509_file("server_cert.pem");
 	if (!cert)
 		return 1;
-	EVP_PKEY *privkey = pem_read_privkey("server_privkey.pem", NULL);
+	EVP_PKEY *privkey = pem_read_privkey("server_privkey.pem", NULL, NULL);
 	if (!privkey)
 		return 1;
 	int sock = net_listen(8888, SOCK_STREAM);
@@ -50,15 +93,58 @@ int main(int argc, char **argv)
 	OPENSSL_free(hello);
 	if (!proto_run_dh(ctx))
 		return 1;
-	char *dummymsg = "The quick brown fox jumps over a lazy dog. The quick brown fox jumps over a lazy dog.";
-	if (!proto_send_gcm(ctx, dummymsg, strlen(dummymsg) + 1))
-		return 1;
-	size_t msglen;
-	char *buf = (char *)proto_recv_gcm(ctx, &msglen);
-	if (!buf)
-		return 1;
-	printf("Message: %s\nLen: %lu\n", buf, msglen);
 	proto_ctx_free(ctx);
 	net_close(sock);
+}
+
+int main(int argc, char **argv)
+{
+	memdbg_enable_debug();
+	int opt;
+	while ((opt = getopt(argc, argv, "+hvp:c:k:d:")) != -1)
+		switch (opt) {
+		case 'h':
+			print_help(argv[0]);
+			return 0;
+		case 'v':
+			print_version();
+			return 0;
+		case 'p':
+			if (!string_to_uint16(optarg, &config.port))
+				panicf("Invalid port number %s. Enter a value between 0 and 65535.",
+					optarg);
+			break;
+		case 'c':
+			strncpy(config.cert_file, optarg, PATH_MAX);
+			config.cert_file[PATH_MAX - 1] = '\0';
+			if (access(config.cert_file, R_OK) != 0) {
+				cout_printf_error("Can not access file '%s'.\n", config.cert_file);
+				panic(strerror(errno));
+			}
+			break;
+		case 'k':
+			strncpy(config.privkey_file, optarg, PATH_MAX);
+			config.privkey_file[PATH_MAX - 1] = '\0';
+			if (access(config.privkey_file, R_OK) != 0) {
+				cout_printf_error("Can not access file '%s'.\n", config.privkey_file);
+				panic(strerror(errno));
+			}
+			break;
+		case 'd':
+			strncpy(config.userkey_dir, optarg, PATH_MAX);
+			config.userkey_dir[PATH_MAX - 1] = '\0';
+			if (access(config.userkey_dir, R_OK) != 0) {
+				cout_printf_error("Can not access file '%s'.\n", config.userkey_dir);
+				panic(strerror(errno));
+			}
+			break;
+		default:
+			panicf("Invalid option: %s.\n" USAGE_STRING,
+				argv[optind], argv[0]);
+		}
+	if (optind < argc)
+		panicf("Invalid argument: %s.\n" USAGE_STRING,
+			argv[optind], argv[0]);
+	//test();
 	return 0;
 }

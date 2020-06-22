@@ -4,7 +4,7 @@
 #include <openssl/bio.h>
 #include <string.h>
 
-EVP_PKEY *pem_read_privkey(const char *filename, pem_password_cb *cb)
+EVP_PKEY *pem_read_privkey(const char *filename, pem_password_cb *cb, void *u)
 {
 	assert(filename);
 	FILE *fp = fopen(filename, "rb");
@@ -12,7 +12,7 @@ EVP_PKEY *pem_read_privkey(const char *filename, pem_password_cb *cb)
 		REPORT_ERR(EFILE, "fopen() failed.");
 		return NULL;
 	}
-	EVP_PKEY *privkey = PEM_read_PrivateKey(fp, NULL, cb, NULL);
+	EVP_PKEY *privkey = PEM_read_PrivateKey(fp, NULL, cb, u);
 	fclose(fp);
 	if (!privkey)
 		REPORT_ERR(EOSSL, "PEM_read_PrivateKey() returned NULL.");

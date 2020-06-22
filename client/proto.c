@@ -7,26 +7,17 @@
 
 typedef void *recv_func(PROTO_CTX *ctx, size_t *len);
 
-static struct error *last_error = NULL;
-static struct error invmsg_error = { INVMSG, "Received an invalid message." };
+static enum err_code last_error = NOERR;
 
-struct error *proto_get_last_error(void)
+enum err_code proto_get_last_error(void)
 {
 	return last_error;
-}
-
-void proto_clear_last_error(void)
-{
-	if (last_error && last_error != &invmsg_error)
-		OPENSSL_free(last_error);
-	last_error = NULL;
 }
 
 static void *recv_message(PROTO_CTX *ctx, enum msg_type type, size_t *len,
 	recv_func *recv)
 {
 	assert(ctx && recv);
-	proto_clear_last_error();
 	size_t msglen;
 	struct message *msg = recv(ctx, &msglen);
 	if (!msg)
@@ -41,12 +32,12 @@ static void *recv_message(PROTO_CTX *ctx, enum msg_type type, size_t *len,
 	if (msg->type == type)
 		return buf;
 	if (msg->type == ERROR) {
-		last_error = (struct error *)buf;
-		REPORT_ERR(EPEERERR, last_error->message);
+		last_error = ((struct error *)msg)->code;
+		REPORT_ERR(EPEERERR, ((struct error *)msg)->message);
 		return NULL;
 	}
 	OPENSSL_clear_free(buf, msglen - sizeof(struct message));
-	last_error = &invmsg_error;
+	last_error = EINVMSG;
 	return NULL;
 }
 
@@ -67,6 +58,23 @@ bool proto_send_hello(PROTO_CTX *ctx, const char *username, uint16_t port,
 	strncpy(body->username, username, MAX_USERNAME_LEN);
 	body->username[MAX_USERNAME_LEN] = '\0';
 	bool res = proto_send_sign(ctx, msg, msglen);
+	OPENSSL_free(msg);
+	return res;
+}
+
+bool proto_send_error(PROTO_CTX *ctx, enum err_code code, const char *message)
+{
+	size_t msglen = MSG_SIZE_OF(struct client_hello) + strlen(message) + 1;
+	struct message *msg = OPENSSL_zalloc(msglen);
+	if (!msg) {
+		REPORT_ERR(EALLOC, "Can not allocate space for ERROR message.");
+		return false;
+	}
+	msg->type = ERROR;
+	struct error *body = (struct error *)msg->body;
+	body->code = code;
+	strcpy(body->message, message);
+	bool res = proto_send(ctx, msg, msglen); //TODO support for gcm/signed mode
 	OPENSSL_free(msg);
 	return res;
 }

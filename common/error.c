@@ -39,10 +39,10 @@ static int print_sslerror(const char *str, __attribute__((unused)) size_t len,
 void error_clear(void)
 {
 	code = ENOERR;
-	errno = 0;
 	if (errmsg)
 		OPENSSL_free(errmsg);
 	errmsg = NULL;
+	errno = 0;
 }
 
 enum error_code error_get(void)
@@ -93,6 +93,21 @@ void error_set(enum error_code c, const char *msg)
 		error_print();
 }
 
+char *error_get_message(void)
+{
+	if (code == ENOERR)
+		return NULL;
+	size_t errmsgsize = errmsg ? strlen(errmsg) + 1 : 0;
+	size_t errstrlen = strlen(errstr[code]);
+	char *msg = OPENSSL_malloc(errstrlen + errmsgsize + 1);
+	if (!msg)
+		return NULL;
+	memcpy(msg, errstr[code], errstrlen);
+	msg[errstrlen] = '\n';
+	memcpy(msg + errstrlen + 1, errmsg, errmsgsize);
+	return msg;
+}
+
 void error_print(void)
 {
 	if (code == ENOERR)
@@ -110,4 +125,20 @@ void error_print(void)
 void error_set_autoprint(bool value)
 {
 	autoprint = value;
+}
+
+/* Prints an error and exits with EXIT_FAILURE. */
+noreturn void panic(const char *errstr)
+{
+	cout_print_error(errstr);
+	exit(EXIT_FAILURE);
+}
+
+/* Formats and prints an error, then it exits with EXIT_FAILURE. */
+noreturn void panicf(const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	cout_vprintf_error(format, args);
+	exit(EXIT_FAILURE);
 }

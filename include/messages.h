@@ -73,7 +73,7 @@ struct __attribute__((packed)) game_move {
 };
 
 enum __attribute__((packed)) err_code {
-	INVMSG, NOAUTH, INVSIG, GCMERR, INVMOVE
+	NOERR, INVMSG, NOAUTH, INVSIG, GCMERR, INVMOVE
 };
 
 struct __attribute__((packed)) error {

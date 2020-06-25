@@ -258,6 +258,20 @@ static void init_session(struct config cfg)
 	proto_ctx_free(server_ctx);
 	exit(EXIT_FAILURE);
 }
+static void recv_game_move (struct game_move gm){
+	c4_insert(gm.column);
+	/*print board*/
+	c4_print_board();
+	/*insert move*/
+	struct game_move my_gm;
+	printf("Choose column: ");
+	my_gm.column=getchar();
+	send_game_move(my_gm);
+}
+
+static void send_game_move(struct game_move gm){
+	proto_send_gcm(ctx, gm, sizeof(gm));
+}
 
 /* Client entry-point. */
 int main(int argc, char **argv)

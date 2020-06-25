@@ -50,6 +50,105 @@ static inline void print_version(void)
 	puts(OPENSSL_VERSION_TEXT);
 }
 
+static bool init()
+{
+	X509 *cert = pem_read_x509_file(config.cert_file);
+	if (!cert) {
+		error_print();
+		X509_free(cert);
+		return false;
+	}
+
+	EVP_PKEY *privkey = pem_read_privkey(config.privkey_file, pass_cb);
+	if (!privkey) {
+		cout_printf_error("Can not open file '%s'.\n", config.privkey_file);
+		error_print();
+		return false;
+	}
+
+
+	int sock = net_listen(config.port, SOCK_STREAM);
+	if (sock == -1){
+			X_509_free(cert);
+			EVP_PKEY_free(privkey);
+			return false;
+			close(sock);
+	}
+
+	int conn = net_accept(sock);
+	if (conn == -1){
+		close(sock);
+		X_509_free(cert);
+		EVP_PKEY_free(privkey);
+		return false;
+	}
+
+	ctx = proto_ctx_new(sock, NULL, privkey, NULL);
+	if (!ctx) {
+		error_print();
+		EVP_PKEY_free(privkey);
+		X509_free(cert);
+		close(sock);
+		return false;
+	}
+
+	truct server_hello *hello = proto_recv_hello(ctx);
+	if (!hello) {
+		error_print(); //TODO
+		proto_clear_last_error();
+		proto_ctx_free(ctx);
+		return false;
+	}
+
+	printf("username: %s\n", hello->username);
+	int len = strlen(hello->username);
+	char *filename = OPENSSL_malloc(len + 5);
+	strcpy(filename, hello->username);
+	strcpy(filename + len, ".pem");
+
+	EVP_PKEY *peerkey = pem_read_pubkey(filename);
+	OPENSSL_free(filename);
+	if (!peerkey) {
+		error_print(); //TODO
+		X509_free(cert);
+		proto_ctx_free(ctx);
+		return false;
+	}
+
+	proto_ctx_set_peerkey(ctx, peerkey);
+
+	if (!proto_verify_last_msg(ctx)){
+		error_print();
+		proto_ctx_free(ctx);
+		return false;
+	}
+
+	if (!proto_send_cert(ctx, cert)){
+		error_print();
+		proto_ctx_free(ctx);
+		return false;
+	}
+
+	X509_free(cert);
+
+	if (!proto_send_hello(ctx, hello->username, hello->nonce)){
+		error_print();
+		proto_ctx_free(ctx);
+		return false;
+	}
+	OPENSSL_free(hello);
+
+	if (!proto_run_dh(ctx)) {
+		error_print(); //TODO
+		proto_ctx_free(ctx);
+		return false;
+	}
+	proto_ctx_free(ctx);
+	net_close(sock);
+	return true;
+}
+
+
 static int test(void)
 {
 	error_enable_autoprint();
@@ -145,6 +244,11 @@ int main(int argc, char **argv)
 	if (optind < argc)
 		panicf("Invalid argument: %s.\n" USAGE_STRING,
 			argv[optind], argv[0]);
-	//test();
+
+	if (!init(config))
+		return 1;
+
+
+
 	return 0;
 }

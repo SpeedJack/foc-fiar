@@ -1,6 +1,7 @@
 #include "client/proto.h"
 #include "assertions.h"
 #include "dh.h"
+#include "net.h"
 #include "error.h"
 #include "random.h"
 #include <string.h>
@@ -141,4 +142,20 @@ bool proto_run_dh(PROTO_CTX *ctx)
 	}
 	dh_ctx_free(dhctx);
 	return !!secret;
+}
+
+PROTO_CTX *proto_connect_to_server(const char *addr, uint16_t port, EVP_PKEY *privkey, int ipv)
+{
+	char service[6];
+	snprintf(service, 6, "%d", port);
+	struct addrinfo *serveraddr = net_getaddrinfo(addr, service,
+		ipv == 6 ? AF_INET6 : ipv == 4 ? AF_INET : AF_UNSPEC, SOCK_STREAM);
+	if (!serveraddr)
+		return NULL;
+	int sock = net_connect(*serveraddr);
+	if (sock == -1) {
+		freeaddrinfo(serveraddr);
+		return NULL;
+	}
+	return proto_ctx_new(sock, serveraddr, privkey, NULL);
 }

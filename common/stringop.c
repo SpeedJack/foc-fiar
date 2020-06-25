@@ -6,6 +6,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+char *string_to_lower(char *str)
+{
+	for (char *c = str; *c != '\0'; c++)
+		*c = tolower(*c);
+	return str;
+}
+
 /*
  * Removes all blank characters at the beginning and the end of the specified
  * string.

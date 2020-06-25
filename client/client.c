@@ -34,7 +34,7 @@
 #define DEFAULT_CA_FILE		"ca.pem"
 #define DEFAULT_CRL_FILE	"crl.pem"
 
-static struct {
+struct config {
 	int force_ipv;
 	uint16_t server_port;
 	uint16_t game_port;
@@ -42,51 +42,14 @@ static struct {
 	char privkey_file[PATH_MAX];
 	char ca_file[PATH_MAX];
 	char crl_file[PATH_MAX];
-} config = { 0, DEFAULT_SERVER_PORT, DEFAULT_GAME_PORT,
-		DEFAULT_SERVER_ADDR, "", DEFAULT_CA_FILE, DEFAULT_CRL_FILE };
+};
 
-static PROTO_CTX *ctx;
+static PROTO_CTX *server_ctx;
+static char username[MAX_USERNAME_LEN + 1];
+static uint16_t game_port;
 
-static bool handle_error(void)
-{
-	enum error_code code = error_get();
-	if (code == ENOERR)
-		return true;
-	enum err_code peererr = proto_get_last_error();
-	char *msg = error_get_message();
-	error_print();
-	switch (code) {
-	case EINVMSG:
-	case ETOOBIG:
-	case EREPLAY:
-	case EINVACK:
-	case EINVSIG:
-	case EGCM:
-	case ETOOMUCH:
-	case EINVCERT:
-		proto_send_error(ctx, INVMSG, msg);
-		return false;
-	case EPEERERR:
-		switch (peererr) {
-		case NOERR:
-		case INVMSG:
-		case INVMOVE:
-			return true;
-		case NOAUTH:
-		case INVSIG:
-		case GCMERR:
-		default:
-			return false;
-		}
-	case EALLOC:
-	case EFILE:
-	case ENET:
-	case EOSSL:
-	case EUNSPEC:
-	default:
-		return false;
-	}
-}
+#define _STRINGIZE(x) #x
+#define STRINGIZE(x) _STRINGIZE(x)
 
 /* Prints help message and exits. */
 static inline void print_help(const char *cmdname)
@@ -95,12 +58,12 @@ static inline void print_help(const char *cmdname)
 		"-h:\tprints this message and exits\n"
 		"-v:\tprints version infos and exits\n"
 		"-i:\tforce a specific IP protocol version (4 or 6)\n"
-		"-H:\tspecifies the server hostname/address\n"
-		"-p:\tspecifies the server port\n"
-		"-l:\tspecifies the p2p listening port\n"
-		"-k:\tspecifies the private key file\n"
-		"-a:\tspecifies the CA certificate file\n"
-		"-c:\tspecifies the CRL file\n",
+		"-H:\tspecifies the server hostname/address (default: " DEFAULT_SERVER_ADDR ")\n"
+		"-p:\tspecifies the server port (default: " STRINGIZE(DEFAULT_SERVER_PORT) ")\n"
+		"-l:\tspecifies the p2p listening port (default: " STRINGIZE(DEFAULT_GAME_PORT) ")\n"
+		"-k:\tspecifies the private key file (default: <username>.pem)\n"
+		"-a:\tspecifies the CA certificate file (default: " DEFAULT_CA_FILE ")\n"
+		"-c:\tspecifies the CRL file (default: " DEFAULT_CRL_FILE ")\n",
 		cmdname);
 }
 
@@ -111,167 +74,189 @@ static inline void print_version(void)
 	puts(OPENSSL_VERSION_TEXT);
 }
 
+static void print_cmd_help(void)
+{
+	puts("help\t\t- print this message.");
+	puts("list\t\t- get the list of connected users.");
+	puts("challenge <username>\t- challenge a user.");
+	puts("quit/exit\t- close the application.");
+}
+
+static void list_users(void)
+{
+	puts("TODO");
+}
+
+static void challenge_user(const char *opponent)
+{
+	size_t len = strlen(opponent);
+	if (len == 0 || len > MAX_USERNAME_LEN) {
+		cout_print_error("Invalid username.");
+		return;
+	}
+	puts("TODO");
+	puts(opponent);
+}
+
+static bool is_valid_command(char *cmd)
+{
+	cmd = string_to_lower(cmd);
+	return 	string_starts_with("quit", cmd)
+		|| string_starts_with("exit", cmd);
+}
+
+static void repl(void)
+{
+	char params[MAX_CMD_SIZE];
+	while (true) {
+		char cmd = read_command('>', params, is_valid_command);
+		switch (cmd) {
+		case 'l':
+			list_users();
+			continue;
+		case 'c':
+			challenge_user(params);
+			continue;
+		case 'h':
+			print_cmd_help();
+			continue;
+		case 'q':
+		case 'e':
+			proto_ctx_free(server_ctx);
+			exit(EXIT_SUCCESS);
+		default:
+			cout_print_error("Invalid command.");
+		}
+	}
+}
+
+static X509 *get_server_cert(void)
+{
+	X509 *cert = proto_recv_cert(server_ctx);
+	if (!cert)
+		return NULL;
+
+	if (!x509_verify(cert)) {
+		X509_free(cert);
+		return NULL;
+	}
+	return cert;
+
+}
+
+static EVP_PKEY *get_server_pubkey(void)
+{
+	X509 *cert = get_server_cert();
+	if (!cert)
+		return NULL;
+	EVP_PKEY *pubkey = x509_extract_pubkey(cert);
+	X509_free(cert);
+	return pubkey;
+}
+
+
+static bool do_hello(void)
+{
+	uint32_t nonce = random_nonce();
+	if (!proto_send_hello(server_ctx, username, game_port, nonce))
+		return false;
+	EVP_PKEY *serverkey = get_server_pubkey();
+	if (!serverkey)
+		return false;
+	proto_ctx_set_peerkey(server_ctx, serverkey);
+	struct server_hello *hello = proto_recv_hello(server_ctx);
+	if (!hello)
+		return false;
+	if (hello->nonce != nonce) {
+		cout_print_error("Invalid nonce in SERVER_HELLO.");
+		OPENSSL_free(hello);
+		return false;
+	}
+	OPENSSL_free(hello);
+	return true;
+}
+
 static int pass_cb(char *buf, int size, __attribute__((unused)) int rwflag, void *u)
 {
-	char password[size];
 	int len;
 	while (true) {
 		printf("Enter pass phrase for \"%s\": ", (char *)u);
 		fflush(stdout);
-		len = cin_read_line(password, size);
-		if (len < 0 || len > size - 1) {
+		len = cin_read_line(buf, size);
+		if (len > size - 1) {
 			cout_print_error("Passsword is too long.");
 			continue;
 		}
+		if (len < 0) {
+			cout_print_error("Reached EOF.");
+			return -1;
+		}
 		break;
 	}
-	memcpy(buf, password, len);
 	return len;
 }
 
-static void start_repl()
+static bool ask_username(void)
 {
-}
-
-static bool init()
-{
-	char username[MAX_USERNAME_LEN + 1];
 	int usernamelen;
 	while (true) {
 		printf("Enter your username: ");
 		fflush(stdout);
 		usernamelen = cin_read_line(username, MAX_USERNAME_LEN + 1);
 		if (usernamelen > MAX_USERNAME_LEN) {
-			printf("Username must contains %d characters at most.\n", MAX_USERNAME_LEN);
+			puts("Username musr contains " STRINGIZE(MAX_USERNAME_LEN) " characters at most.");
 			continue;
 		}
 		if (usernamelen < 0) {
-			printf("Reached End-Of-File.\n");
+			puts("Reached EOF.");
 			return false;
 		}
 		break;
 	}
-
-	if (!config.privkey_file || *config.privkey_file == '\0') {
-		strncpy(config.privkey_file, username, usernamelen + 1);
-		strcpy(config.privkey_file + usernamelen, ".pem");
-	}
-
-	EVP_PKEY *privkey = pem_read_privkey(config.privkey_file, pass_cb, username);
-	if (!privkey) {
-		cout_printf_error("Can not open file '%s'.\n", config.privkey_file);
-		error_print();
-		return false;
-	}
-
-	X509 *ca = pem_read_x509_file(config.ca_file);
-	if (!ca) {
-		error_print();
-		EVP_PKEY_free(privkey);
-		return false;
-	}
-	X509_CRL *crl = x509_read_crl(config.crl_file);
-	if (!crl) {
-		error_print();
-		EVP_PKEY_free(privkey);
-		X509_free(ca);
-		return false;
-	}
-
-	char service[6];
-	snprintf(service, 6, "%d", config.server_port);
-	int ipv = AF_UNSPEC;
-	if (config.force_ipv != 0)
-		ipv = config.force_ipv == 4 ? AF_INET : AF_INET6;
-	struct addrinfo *serveraddr = net_getaddrinfo(config.server_addr, service, ipv, SOCK_STREAM);
-	if (!serveraddr) {
-		error_print();
-		EVP_PKEY_free(privkey);
-		X509_free(ca);
-		X509_CRL_free(crl);
-		return false;
-	}
-
-	int sock = net_connect(*serveraddr);
-	if (sock == -1) {
-		error_print();
-		freeaddrinfo(serveraddr);
-		EVP_PKEY_free(privkey);
-		X509_free(ca);
-		X509_CRL_free(crl);
-		return false;
-	}
-
-	ctx = proto_ctx_new(sock, serveraddr, privkey, NULL);
-	if (!ctx) {
-		error_print();
-		freeaddrinfo(serveraddr);
-		EVP_PKEY_free(privkey);
-		X509_free(ca);
-		X509_CRL_free(crl);
-		close(sock);
-		return false;
-	}
-
-	uint32_t nonce = random_nonce();
-	if (!proto_send_hello(ctx, username, config.game_port, nonce)) {
-		error_print(); //TODO
-		X509_free(ca);
-		X509_CRL_free(crl);
-		proto_ctx_free(ctx);
-		return false;
-	}
-
-	X509 *cert = proto_recv_cert(ctx);
-	if (!cert) {
-		error_print(); //TODO
-		X509_free(ca);
-		X509_CRL_free(crl);
-		proto_ctx_free(ctx);
-		return false;
-	}
-	if (!x509_verify(cert, ca, crl)) {
-		error_print(); //TODO
-		X509_free(ca);
-		X509_CRL_free(crl);
-		proto_ctx_free(ctx);
-		return false;
-	}
-	X509_free(ca);
-	X509_CRL_free(crl);
-	EVP_PKEY *peerkey = x509_extract_pubkey(cert);
-	if (!peerkey) {
-		error_print(); //TODO
-		X509_free(cert);
-		proto_ctx_free(ctx);
-		return false;
-	}
-	X509_free(cert);
-	proto_ctx_set_peerkey(ctx, peerkey);
-
-	struct server_hello *hello = proto_recv_hello(ctx);
-	if (!hello) {
-		error_print(); //TODO
-		proto_ctx_free(ctx);
-		return false;
-	}
-	if (hello->nonce != nonce) {
-		cout_print_error("Invalid nonce in SERVER_HELLO.");
-		OPENSSL_free(hello);
-		proto_ctx_free(ctx);
-		return false;
-	}
-	OPENSSL_free(hello);
-
-	if (!proto_run_dh(ctx)) {
-		error_print(); //TODO
-		proto_ctx_free(ctx);
-		return false;
-	}
-
-	printf("Successfully connected to the server!\n");
-	proto_ctx_free(ctx); //TODO
 	return true;
+}
+
+static EVP_PKEY *load_user_privkey(char *privkey_file)
+{
+	if (!ask_username())
+		return NULL;
+	if (!privkey_file || *privkey_file == '\0') {
+		strcpy(privkey_file, username);
+		strcpy(privkey_file + strlen(username), ".pem");
+	}
+	EVP_PKEY *privkey = pem_read_privkey(privkey_file, pass_cb, username);
+	if (!privkey) {
+		cout_printf_error("Can not open file '%s'.\n", privkey_file);
+		return NULL;
+	}
+	return privkey;
+
+}
+
+static void init_session(struct config cfg)
+{
+	game_port = cfg.game_port;
+	EVP_PKEY *privkey = NULL;
+	do {
+		if (!x509_store_init(cfg.ca_file, cfg.crl_file))
+			break;
+		privkey = load_user_privkey(cfg.privkey_file);
+		if (!privkey)
+			break;
+		server_ctx = proto_connect_to_server(cfg.server_addr,
+			cfg.server_port, privkey, cfg.force_ipv);
+		if (!server_ctx || !do_hello() || !proto_run_dh(server_ctx))
+			break;
+		EVP_PKEY_free(privkey);
+		x509_store_free();
+		return;
+	} while(0);
+
+	error_print();
+	EVP_PKEY_free(privkey);
+	x509_store_free();
+	proto_ctx_free(server_ctx);
+	exit(EXIT_FAILURE);
 }
 
 /* Client entry-point. */
@@ -279,6 +264,8 @@ int main(int argc, char **argv)
 {
 	memdbg_enable_debug();
 	int opt;
+	struct config cfg = { 0, DEFAULT_SERVER_PORT, DEFAULT_GAME_PORT,
+		DEFAULT_SERVER_ADDR, "", DEFAULT_CA_FILE, DEFAULT_CRL_FILE };
 
 	while ((opt = getopt(argc, argv, "+:hvi:H:p:l:k:a:c:")) != -1)
 		switch (opt) {
@@ -289,46 +276,46 @@ int main(int argc, char **argv)
 			print_version();
 			return 0;
 		case 'i':
-			if (!string_to_int(optarg, &config.force_ipv)
-					|| (config.force_ipv != 4 && config.force_ipv != 6))
+			if (!string_to_int(optarg, &cfg.force_ipv)
+					|| (cfg.force_ipv != 4 && cfg.force_ipv != 6))
 				panicf("Invalid option argument for -i: %s.",
 					optarg);
 			break;
 		case 'H':
-			strncpy(config.server_addr, optarg, 254);
-			config.server_addr[253] = '\0';
+			strncpy(cfg.server_addr, optarg, 254);
+			cfg.server_addr[253] = '\0';
 			break;
 		case 'p':
-			if (!string_to_uint16(optarg, &config.server_port))
+			if (!string_to_uint16(optarg, &cfg.server_port))
 				panicf("Invalid port number %s. Enter a value between 0 and 65535.",
 					optarg);
 			break;
 		case 'l':
-			if (!string_to_uint16(optarg, &config.game_port))
+			if (!string_to_uint16(optarg, &cfg.game_port))
 				panicf("Invalid port number %s. Enter a value between 0 and 65535.",
 					optarg);
 			break;
 		case 'k':
-			strncpy(config.privkey_file, optarg, PATH_MAX);
-			config.privkey_file[PATH_MAX - 1] = '\0';
-			if (access(config.privkey_file, R_OK) != 0) {
-				cout_printf_error("Can not access file '%s'.\n", config.privkey_file);
+			strncpy(cfg.privkey_file, optarg, PATH_MAX);
+			cfg.privkey_file[PATH_MAX - 1] = '\0';
+			if (access(cfg.privkey_file, R_OK) != 0) {
+				cout_printf_error("Can not access file '%s'.\n", cfg.privkey_file);
 				panicf(strerror(errno));
 			}
 			break;
 		case 'a':
-			strncpy(config.ca_file, optarg, PATH_MAX);
-			config.ca_file[PATH_MAX - 1] = '\0';
-			if (access(config.ca_file, R_OK) != 0) {
-				cout_printf_error("Can not access file '%s'.\n", config.ca_file);
+			strncpy(cfg.ca_file, optarg, PATH_MAX);
+			cfg.ca_file[PATH_MAX - 1] = '\0';
+			if (access(cfg.ca_file, R_OK) != 0) {
+				cout_printf_error("Can not access file '%s'.\n", cfg.ca_file);
 				panic(strerror(errno));
 			}
 			break;
 		case 'c':
-			strncpy(config.crl_file, optarg, PATH_MAX);
-			config.crl_file[PATH_MAX - 1] = '\0';
-			if (access(config.crl_file, R_OK) != 0) {
-				cout_printf_error("Can not access file '%s'.\n", config.crl_file);
+			strncpy(cfg.crl_file, optarg, PATH_MAX);
+			cfg.crl_file[PATH_MAX - 1] = '\0';
+			if (access(cfg.crl_file, R_OK) != 0) {
+				cout_printf_error("Can not access file '%s'.\n", cfg.crl_file);
 				panic(strerror(errno));
 			}
 			break;
@@ -341,9 +328,7 @@ int main(int argc, char **argv)
 		panicf("Invalid argument: %s.\n" USAGE_STRING,
 			argv[optind], argv[0]);
 
-	if (!init(config))
-		return 1;
-	start_repl();
-
+	init_session(cfg);
+	repl();
 	return 0;
 }

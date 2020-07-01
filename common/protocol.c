@@ -5,6 +5,7 @@
 #include "protocol.h"
 #include "assertions.h"
 #include "digest.h"
+#include "dh.h"
 #include "error.h"
 #include "gcm.h"
 #include "memdbg.h"
@@ -15,9 +16,10 @@
 struct __attribute__((packed)) msg_header {
 	uint32_t magic;
 	uint32_t counter;
-	uint32_t ack_msg;
+	enum msg_type type;
 	uint32_t payload_size;
 	uint32_t nonce;
+	unsigned char prev_hash[SHA256_DIGEST_LENGTH];
 };
 
 struct __attribute__((packed)) msg {
@@ -32,25 +34,24 @@ struct proto_ctx {
 	GCM_CTX *gctx;
 	unsigned int send_counter;
 	unsigned int recv_counter;
-	unsigned int last_ack;
 	uint32_t last_recv_nonce;
-	uint32_t last_send_nonce;
+	uint32_t last_sent_nonce;
 	struct msg *last_recv_msg;
+	unsigned char last_recv_msg_hash[SHA256_DIGEST_LENGTH];
+	unsigned char last_sent_msg_hash[SHA256_DIGEST_LENGTH];
 };
 
-typedef void *transform_cb(PROTO_CTX *ctx, const void *data, size_t len,
-	size_t *outlen);
-typedef struct msg *(recv_fn)(PROTO_CTX *ctx, size_t *len);
+typedef void *transform_fn(PROTO_CTX *ctx, enum msg_type type, const void *data,
+	size_t len, size_t *outlen);
+typedef struct msg *recv_fn(PROTO_CTX *ctx, size_t *len);
+typedef bool dh_fn(PROTO_CTX *ctx, DH_CTX *dhctx, uint32_t *nonce);
 
-#define FIRST_MSG_SIZE		54
+#define MAGIC_NUMBER		0xDEC0DE
+#define FIRST_MSG_SIZE		128
 #define FIRST_PL_SIZE		(FIRST_MSG_SIZE - sizeof(struct msg_header))
 #define REMAINING_SIZE(total)	(total - FIRST_PL_SIZE + sizeof(struct msg_header))
 #define MAX_PL_SIZE		(1<<26)
 #define MAX_SIG_SIZE		MAX_PL_SIZE
-
-#define RECV_MODE_PLAIN		0
-#define RECV_MODE_SIGNED	1
-#define RECV_MODE_ENCRYPTED	2
 
 PROTO_CTX *proto_ctx_new(int socket, struct addrinfo *peeraddr,
 	EVP_PKEY *privkey, EVP_PKEY *peerkey)
@@ -66,10 +67,11 @@ PROTO_CTX *proto_ctx_new(int socket, struct addrinfo *peeraddr,
 	ctx->gctx = NULL;
 	ctx->send_counter = 0;
 	ctx->recv_counter = 0;
-	ctx->last_ack = 0;
 	ctx->last_recv_nonce = 0;
-	ctx->last_send_nonce = 0;
+	ctx->last_sent_nonce = 0;
 	ctx->last_recv_msg = NULL;
+	memset(ctx->last_recv_msg_hash, 0, SHA256_DIGEST_LENGTH);
+	memset(ctx->last_sent_msg_hash, 0, SHA256_DIGEST_LENGTH);
 	return ctx;
 }
 
@@ -105,18 +107,24 @@ void proto_ctx_free(PROTO_CTX *ctx)
 	OPENSSL_free(ctx);
 }
 
-static struct msg_header create_header(PROTO_CTX *ctx, size_t len, uint32_t nonce)
+static struct msg_header create_header(PROTO_CTX *ctx, enum msg_type type,
+	size_t len, uint32_t nonce)
 {
 	assert(ctx);
-	ctx->last_send_nonce = nonce;
-	ctx->send_counter++;
-	struct msg_header header = { MAGIC_NUMBER, ctx->send_counter,
-		ctx->recv_counter, len, ctx->last_send_nonce };
+	struct msg_header header;
+	header.magic = MAGIC_NUMBER;
+	header.counter = ++(ctx->send_counter);
+	header.type = type;
+	header.payload_size = len;
+	header.nonce = nonce;
+	memcpy(&header.prev_hash, ctx->last_recv_msg_hash, SHA256_DIGEST_LENGTH);
+	ctx->last_sent_nonce = nonce;
 	return header;
 }
 
-static struct msg *craft_msg(PROTO_CTX *ctx, const unsigned char *data, size_t len,
-	size_t *outlen, struct msg **second)
+static struct msg *craft_msg(PROTO_CTX *ctx, enum msg_type type,
+	const unsigned char *data, size_t len, size_t *outlen,
+	struct msg **second)
 {
 	assert(ctx && outlen);
 	uint32_t nonce = random_nonce();
@@ -130,13 +138,14 @@ static struct msg *craft_msg(PROTO_CTX *ctx, const unsigned char *data, size_t l
 		REPORT_ERR(EALLOC, "Can not allocate space for the messages to be sent.");
 		return NULL;
 	}
-	struct msg_header header = create_header(ctx, len, nonce);
+	struct msg_header header = create_header(ctx, type, len, nonce);
 	memcpy(msg, &header, sizeof(struct msg_header));
 	if (data) {
 		assert(len > 0);
 		memcpy((char *)msg + sizeof(struct msg_header), data,
 			(second && len > FIRST_PL_SIZE) ? FIRST_PL_SIZE : len);
 	}
+	unsigned char *hash;
 	if (second && len > FIRST_PL_SIZE) {
 		*second = (struct msg *)(((char *)msg) + FIRST_MSG_SIZE);
 		nonce = random_nonce();
@@ -144,11 +153,20 @@ static struct msg *craft_msg(PROTO_CTX *ctx, const unsigned char *data, size_t l
 			OPENSSL_clear_free(msg, FIRST_MSG_SIZE);
 			return NULL;
 		}
-		header = create_header(ctx, len - FIRST_PL_SIZE, nonce);
+		header = create_header(ctx, type, len - FIRST_PL_SIZE, nonce);
 		memcpy(*second, &header, sizeof(struct msg_header));
 		memcpy((char *)(*second) + sizeof(struct msg_header),
 			data + FIRST_PL_SIZE, len - FIRST_PL_SIZE);
+		hash = digest_sha256((const unsigned char *)*second, REMAINING_SIZE(len));
+	} else {
+		hash = digest_sha256((const unsigned char *)msg, *outlen);
 	}
+	if (!hash) {
+		OPENSSL_clear_free(msg, *outlen);
+		return NULL;
+	}
+	memcpy(ctx->last_sent_msg_hash, hash, SHA256_DIGEST_LENGTH);
+	OPENSSL_free(hash);
 	return msg;
 }
 
@@ -172,12 +190,13 @@ static void *encrypt_single_msg(PROTO_CTX *ctx, const struct msg *msg,
 	return buf;
 }
 
-static void *encrypt_msg(PROTO_CTX *ctx, const void *data, size_t len,
-	size_t *outlen)
+static void *encrypt_msg(PROTO_CTX *ctx, enum msg_type type, const void *data,
+	size_t len, size_t *outlen)
 {
-	assert(ctx && ctx->gctx && data && outlen);
+	assert(ctx && ctx->gctx && outlen);
 	struct msg *second = NULL;
-	struct msg *msg = craft_msg(ctx, (unsigned char *)data, len, outlen, &second);
+	struct msg *msg = craft_msg(ctx, type, (unsigned char *)data,
+		len, outlen, &second);
 	if (!msg)
 		return NULL;
 	size_t firstsize;
@@ -215,12 +234,13 @@ static void *encrypt_msg(PROTO_CTX *ctx, const void *data, size_t len,
 	return buf;
 }
 
-static void *sign_msg(PROTO_CTX *ctx, const void *data, size_t len,
-	size_t *outlen)
+static void *sign_msg(PROTO_CTX *ctx, enum msg_type type, const void *data,
+	size_t len, size_t *outlen)
 {
-	assert(ctx && ctx->dctx && data && outlen);
+	assert(ctx && ctx->dctx && outlen);
 	size_t msglen;
-	struct msg *msg = craft_msg(ctx, (unsigned char *)data, len, &msglen, NULL);
+	struct msg *msg = craft_msg(ctx, type, (unsigned char *)data,
+		len, &msglen, NULL);
 	if (!msg)
 		return NULL;
 	size_t slen;
@@ -248,18 +268,18 @@ static void *sign_msg(PROTO_CTX *ctx, const void *data, size_t len,
 	return buf;
 }
 
-static void *plain_msg(PROTO_CTX *ctx, const void *data, size_t len,
-	size_t *outlen)
+static void *plain_msg(PROTO_CTX *ctx, enum msg_type type, const void *data,
+	size_t len, size_t *outlen)
 {
-	return craft_msg(ctx, (unsigned char *)data, len, outlen, NULL);
+	return craft_msg(ctx, type, (unsigned char *)data, len, outlen, NULL);
 }
 
-static bool send_msg(PROTO_CTX *ctx, const void *data, size_t len,
-	transform_cb *transform)
+static bool send_msg(PROTO_CTX *ctx, enum msg_type type, const void *data,
+	size_t len, transform_fn *transform)
 {
-	assert(ctx && data && transform);
+	assert(ctx && transform);
 	size_t outlen;
-	void *msg = transform(ctx, data, len, &outlen);
+	void *msg = transform(ctx, type, data, len, &outlen);
 	if (!msg)
 		return false;
 	assert(outlen > len);
@@ -269,24 +289,34 @@ static bool send_msg(PROTO_CTX *ctx, const void *data, size_t len,
 	}
 	memdbg_dump("MESSAGE SENT", msg, outlen);
 	OPENSSL_clear_free(msg, outlen);
+	memdbg_dump("SENT MESSAGE HASH", ctx->last_sent_msg_hash, SHA256_DIGEST_LENGTH);
 	return true;
 }
 
-bool proto_send(PROTO_CTX *ctx, const void *data, size_t len)
+bool proto_send_plain(PROTO_CTX *ctx, enum msg_type type, const void *data, size_t len)
 {
-	return send_msg(ctx, data, len, plain_msg);
+	return send_msg(ctx, type, data, len, plain_msg);
 }
 
-bool proto_send_sign(PROTO_CTX *ctx, const void *data, size_t len)
+bool proto_send_sign(PROTO_CTX *ctx, enum msg_type type, const void *data, size_t len)
 {
-	return send_msg(ctx, data, len, sign_msg);
+	return send_msg(ctx, type, data, len, sign_msg);
 }
 
-bool proto_send_gcm(PROTO_CTX *ctx, const void *data, size_t len)
+bool proto_send_gcm(PROTO_CTX *ctx, enum msg_type type, const void *data, size_t len)
 {
 	assert(ctx && ctx->gctx);
 	gcm_ctx_set_nonce(ctx->gctx, ctx->last_recv_nonce);
-	return send_msg(ctx, data, len, encrypt_msg);
+	return send_msg(ctx, type, data, len, encrypt_msg);
+}
+
+bool proto_send(PROTO_CTX *ctx, enum msg_type type, const void *data, size_t len)
+{
+	if (ctx->gctx)
+		return proto_send_gcm(ctx, type, data, len);
+	if (digest_ctx_can_sign(ctx->dctx))
+		return proto_send_sign(ctx, type, data, len);
+	return proto_send_plain(ctx, type, data, len);
 }
 
 static bool valid_header(PROTO_CTX *ctx, struct msg_header header)
@@ -296,20 +326,25 @@ static bool valid_header(PROTO_CTX *ctx, struct msg_header header)
 		REPORT_ERR(EINVMSG, "Invalid magic number.");
 		goto return_error;
 	}
-	if (header.counter <= ctx->recv_counter) {
-		REPORT_ERR(EREPLAY, NULL);
+#pragma GCC diagnostic ignored "-Wtype-limits"
+	if (header.type < CLIENT_HELLO || header.type > ERROR) {
+#pragma GCC diagnostic pop
+		REPORT_ERR(EINVMSG, "Invalid message type.");
 		goto return_error;
 	}
-	ctx->recv_counter = header.counter;
-	if (header.ack_msg > ctx->send_counter) {
-		REPORT_ERR(EINVACK, NULL);
+	if (header.counter != ctx->recv_counter + 1) {
+		REPORT_ERR(EREPLAY, NULL);
 		goto return_error;
 	}
 	if (header.payload_size > MAX_PL_SIZE) {
 		REPORT_ERR(ETOOBIG, "Received a message with a too long payload.");
 		goto return_error;
 	}
-	ctx->last_ack = header.ack_msg;
+	if (CRYPTO_memcmp(header.prev_hash, ctx->last_sent_msg_hash, SHA256_DIGEST_LENGTH) != 0) {
+		REPORT_ERR(EINVHASH, "The received message specifies a wrong hash.");
+		goto return_error;
+	}
+	ctx->recv_counter = header.counter;
 	ctx->last_recv_nonce = header.nonce;
 	return true;
 return_error:
@@ -362,7 +397,7 @@ static void *decrypt_msg(PROTO_CTX *ctx, const void *data, size_t len,
 	if (!net_recv(ctx->socket, tag, sizeof(tag)))
 		return NULL;
 	memdbg_dump("GCM TAG RECEIVED", tag, sizeof(tag));
-	gcm_ctx_set_nonce(ctx->gctx, ctx->last_send_nonce);
+	gcm_ctx_set_nonce(ctx->gctx, ctx->last_sent_nonce);
 	struct msg *msg = (struct msg *)gcm_decrypt(ctx->gctx,
 		(unsigned char *)data, len, tag);
 	*outlen = len;
@@ -428,17 +463,29 @@ static struct msg *recv_encrypted_msg(PROTO_CTX *ctx, size_t *len)
 		return NULL;
 	}
 	memcpy(buf, msg, *len > FIRST_PL_SIZE ? FIRST_MSG_SIZE : *len + sizeof(struct msg_header));
-	OPENSSL_clear_free(msg, FIRST_MSG_SIZE);
+	unsigned char *hash;
 	if (*len > FIRST_PL_SIZE) {
-		msg = recv_single_encrypted_msg(ctx, REMAINING_SIZE(*len));
-		if (!msg) {
+		struct msg *second = recv_single_encrypted_msg(ctx, REMAINING_SIZE(*len));
+		if (!second) {
+			OPENSSL_clear_free(msg, FIRST_MSG_SIZE);
 			OPENSSL_clear_free(buf, FIRST_MSG_SIZE);
 			return NULL;
 		}
-		assert(msg->header.payload_size == *len - FIRST_PL_SIZE);
-		memcpy((char *)buf + FIRST_MSG_SIZE, msg->payload, *len - FIRST_PL_SIZE);
-		OPENSSL_clear_free(msg, REMAINING_SIZE(*len));
+		assert(second->header.payload_size == *len - FIRST_PL_SIZE);
+		memcpy((char *)buf + FIRST_MSG_SIZE, second->payload, *len - FIRST_PL_SIZE);
+		hash = digest_sha256((const unsigned char *)second, REMAINING_SIZE(*len));
+		OPENSSL_clear_free(second, REMAINING_SIZE(*len));
+	} else {
+		hash = digest_sha256((const unsigned char *)msg, FIRST_MSG_SIZE);
 	}
+	OPENSSL_clear_free(msg, FIRST_MSG_SIZE);
+	if (!hash) {
+		OPENSSL_clear_free(buf, *len + sizeof(struct msg_header));
+		return NULL;
+	}
+	memcpy(ctx->last_recv_msg_hash, hash, SHA256_DIGEST_LENGTH);
+	OPENSSL_free(hash);
+	ctx->last_recv_msg = buf;
 	return buf;
 }
 
@@ -462,34 +509,178 @@ static struct msg *recv_msg(PROTO_CTX *ctx, size_t *len)
 		return NULL;
 	}
 	memdbg_dump("MESSAGE RECEIVED", msg, *len + sizeof(struct msg_header));
+	unsigned char *hash = digest_sha256((const unsigned char *)msg, *len + sizeof(struct msg_header));
+	if (!hash) {
+		OPENSSL_clear_free(msg, *len + sizeof(struct msg_header));
+		return NULL;
+	}
+	memcpy(ctx->last_recv_msg_hash, hash, SHA256_DIGEST_LENGTH);
+	OPENSSL_free(hash);
+	ctx->last_recv_msg = msg;
 	return msg;
 }
 
-static void *real_recv(PROTO_CTX *ctx, size_t *len, int mode)
+static struct msg *recv_signed_msg(PROTO_CTX *ctx, size_t *len)
+{
+	assert(ctx && len);
+	struct msg *msg = recv_msg(ctx, len);
+	if (!msg || !proto_verify_last_msg(ctx))
+		return NULL;
+	return msg;
+}
+
+static void *real_recv(PROTO_CTX *ctx, enum msg_type *type,
+	size_t *len, recv_fn *recv_impl)
 {
 	proto_clear_last_recv_msg(ctx);
-	recv_fn *recv_impl = mode == RECV_MODE_ENCRYPTED
-		? &recv_encrypted_msg : &recv_msg;
 	struct msg *msg = recv_impl(ctx, len);
 	if (!msg)
 		return NULL;
-	ctx->last_recv_msg = msg;
-	if (mode == RECV_MODE_SIGNED && !proto_verify_last_msg(ctx))
-		return NULL;
+	memdbg_dump("RECEIVED MESSAGE HASH", ctx->last_recv_msg_hash, SHA256_DIGEST_LENGTH);
+	*type = msg->header.type;
 	return msg->payload;
 }
 
-void *proto_recv(PROTO_CTX *ctx, size_t *len)
+void *proto_recv_plain(PROTO_CTX *ctx, enum msg_type *type, size_t *len)
 {
-	return real_recv(ctx, len, RECV_MODE_PLAIN);
+	return real_recv(ctx, type, len, recv_msg);
 }
 
-void *proto_recv_verify(PROTO_CTX *ctx, size_t *len)
+void *proto_recv_verify(PROTO_CTX *ctx, enum msg_type *type, size_t *len)
 {
-	return real_recv(ctx, len, RECV_MODE_SIGNED);
+	return real_recv(ctx, type, len, recv_signed_msg);
 }
 
-void *proto_recv_gcm(PROTO_CTX *ctx, size_t *len)
+void *proto_recv_gcm(PROTO_CTX *ctx, enum msg_type *type, size_t *len)
 {
-	return real_recv(ctx, len, RECV_MODE_ENCRYPTED);
+	return real_recv(ctx, type, len, recv_encrypted_msg);
+}
+
+void *proto_recv(PROTO_CTX *ctx, enum msg_type *type, size_t *len)
+{
+	if (ctx->gctx)
+		return proto_recv_gcm(ctx, type, len);
+	if (digest_ctx_can_verify(ctx->dctx))
+		return proto_recv_verify(ctx, type, len);
+	return proto_recv_plain(ctx, type, len);
+}
+
+static inline void *call_recv_by_type(PROTO_CTX *ctx, enum msg_type *type, size_t *len)
+{
+	switch(*type) {
+		case CLIENT_HELLO:
+		case SERVER_CERT:
+			return proto_recv_plain(ctx, type, len);
+		case SERVER_HELLO:
+		case DHKEY:
+			return proto_recv_verify(ctx, type, len);
+		case PLAYER_LIST_REQ:
+		case PLAYER_LIST:
+		case CHALLENGE_RES:
+		case CHALLENGE_REQ:
+		case CLIENT_INFO:
+			return proto_recv_gcm(ctx, type, len);
+		default:
+			return proto_recv(ctx, type, len);
+	}
+}
+
+void *proto_recv_msg_type(PROTO_CTX *ctx, enum msg_type type, size_t *len)
+{
+	size_t msglen;
+	enum msg_type recvtype = type;
+	void *data = call_recv_by_type(ctx, &recvtype, &msglen);
+	if (!data)
+		return NULL;
+	if (recvtype != type) {
+		if (recvtype == ERROR) {
+			struct error *msg = (struct error *)data;
+			error_clear();
+			REPORT_ERR(msg->code, msg->message);
+		} else {
+			REPORT_ERR(EINVMSG, "Received an invalid message type.");
+		}
+		return NULL;
+	}
+	if (len)
+		*len = msglen;
+	return data;
+}
+
+
+static bool send_dh_pubkey(PROTO_CTX *ctx, DH_CTX *dhctx, uint32_t *nonce)
+{
+	if (*nonce == 0)
+		*nonce = random_nonce();
+	if (*nonce == 0)
+		return false;
+	size_t pklen;
+	unsigned char *pk = dh_gen_pubkey(dhctx, &pklen);
+	if (!pk)
+		return false;
+	struct dhkey *msg = OPENSSL_malloc(sizeof(struct dhkey) + pklen);
+	msg->nonce = *nonce;
+	msg->len = (uint32_t)pklen;
+	memcpy(msg->key, pk, pklen);
+	OPENSSL_clear_free(pk, pklen);
+	bool res = proto_send_sign(ctx, DHKEY, msg, sizeof(struct dhkey) + pklen);
+	OPENSSL_clear_free(msg, sizeof(struct dhkey) + pklen);
+	return res;
+}
+
+static bool recv_dh_pubkey(PROTO_CTX *ctx, DH_CTX *dhctx, uint32_t *nonce)
+{
+	size_t msglen;
+	struct dhkey *msg = (struct dhkey *)proto_recv_msg_type(ctx, DHKEY, &msglen);
+	if (!msg)
+		return false;
+	if (*nonce == 0) {
+		*nonce = msg->nonce;
+	} else if (msg->nonce != *nonce) {
+		REPORT_ERR(EINVMSG, "Received a DHKEY message with an invalid nonce.");
+		OPENSSL_clear_free(msg, msglen);
+		return false;
+	}
+	bool res = dh_ctx_set_peerkey(dhctx, msg->key, (size_t)msg->len);
+	return res;
+}
+
+bool proto_run_dh(PROTO_CTX *ctx, bool send_first)
+{
+	dh_fn *first, *second;
+	if (send_first) {
+		first = send_dh_pubkey;
+		second = recv_dh_pubkey;
+	} else {
+		first = recv_dh_pubkey;
+		second = send_dh_pubkey;
+	}
+	DH_CTX *dhctx = dh_ctx_new();
+	uint32_t nonce = 0;
+	if (!first(ctx, dhctx, &nonce) || !second(ctx, dhctx, &nonce)) {
+		dh_ctx_free(dhctx);
+		return false;
+	}
+	unsigned char *secret = dh_derive_secret(dhctx);
+	if (secret) {
+		proto_ctx_set_secret(ctx, secret);
+		OPENSSL_clear_free(secret, DH_SECRET_LENGTH);
+	}
+	dh_ctx_free(dhctx);
+	return !!secret;
+}
+
+bool proto_send_error(PROTO_CTX *ctx, enum error_code code, const char *text)
+{
+	size_t msglen = sizeof(struct error) + (text ? strlen(text) : 0) + 1;
+	struct error *msg = OPENSSL_malloc(msglen);
+	if (!msg) {
+		REPORT_ERR(EALLOC, "Can not allocate space for ERROR message.");
+		return false;
+	}
+	msg->code = code;
+	strcpy(msg->message, text ? text : "");
+	bool res = proto_send(ctx, ERROR, msg, msglen);
+	OPENSSL_free(msg);
+	return res;
 }

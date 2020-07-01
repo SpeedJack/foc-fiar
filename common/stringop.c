@@ -21,14 +21,14 @@ void string_trim(char **pstr)
 {
 	assert(pstr && *pstr);
 	char *str = *pstr;
-	while (isspace((int)*str)) ++(str);
+	while (isspace((int)*str)) ++str;
 	*pstr = str;
 
 	if (*str == '\0')
 		return;
 
 	char *end;
-	for (end = str + strlen(str); end > str && isspace((int)*end); --end)
+	for (end = str + strlen(str) - 1; end >= str && isspace((int)*end); --end)
 		;
 	*(++end) = '\0';
 }
@@ -86,6 +86,20 @@ bool string_starts_with(const char *str, const char *prefix)
 		return false;
 	for (unsigned int i = 0; i < prefixlen; i++)
 		if (str[i] != prefix[i])
+			return false;
+	return true;
+}
+
+bool string_ends_with(const char *str, const char *suffix)
+{
+	if (!str || !suffix)
+		return false;
+	size_t suffixlen = strlen(suffix);
+	size_t stringlen = strlen(str);
+	if (stringlen < suffixlen)
+		return false;
+	for (unsigned int i = 0; i < suffixlen; i++)
+		if (str[stringlen - i - 1] != suffix[suffixlen - i - 1])
 			return false;
 	return true;
 }

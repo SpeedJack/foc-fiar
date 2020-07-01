@@ -9,7 +9,11 @@ struct digest_ctx {
 
 unsigned char *digest_sha256(const unsigned char *input, size_t len)
 {
-	static unsigned char hash[SHA256_DIGEST_LENGTH];
+	unsigned char *hash = OPENSSL_malloc(SHA256_DIGEST_LENGTH);
+	if (!hash) {
+		REPORT_ERR(EALLOC, "Can not allocate space for the SHA-256 digest.");
+		return NULL;
+	}
 	EVP_MD_CTX *ctx = EVP_MD_CTX_new();
 	if (!ctx) {
 		REPORT_ERR(EOSSL, "EVP_MD_CTX_new() returned NULL.");
@@ -54,9 +58,19 @@ void digest_ctx_set_peerkey(DIGEST_CTX *ctx, EVP_PKEY *peerkey)
 	ctx->peerkey = peerkey;
 }
 
+bool digest_ctx_can_verify(DIGEST_CTX *ctx)
+{
+	return ctx && ctx->peerkey;
+}
+
+bool digest_ctx_can_sign(DIGEST_CTX *ctx)
+{
+	return ctx && ctx->privkey;
+}
+
 void digest_ctx_free(DIGEST_CTX *ctx)
 {
-	EVP_PKEY_free(ctx->privkey);
+	/* EVP_PKEY_free(ctx->privkey); */
 	EVP_PKEY_free(ctx->peerkey);
 	OPENSSL_clear_free(ctx, sizeof(DIGEST_CTX));
 }

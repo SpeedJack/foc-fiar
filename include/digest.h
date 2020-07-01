@@ -13,6 +13,8 @@ typedef struct digest_ctx DIGEST_CTX;
 extern unsigned char *digest_sha256(const unsigned char *input, size_t len);
 extern DIGEST_CTX *digest_ctx_new(EVP_PKEY *privkey, EVP_PKEY *peerkey);
 extern void digest_ctx_set_peerkey(DIGEST_CTX *ctx, EVP_PKEY *peerkey);
+extern bool digest_ctx_can_verify(DIGEST_CTX *ctx);
+extern bool digest_ctx_can_sign(DIGEST_CTX *ctx);
 extern void digest_ctx_free(DIGEST_CTX *ctx);
 extern unsigned char *digest_sign(const DIGEST_CTX *dctx,
 	const unsigned char *msg, size_t len, size_t *slen);

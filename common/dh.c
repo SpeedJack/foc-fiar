@@ -10,6 +10,7 @@
 
 struct dh_ctx {
 	EVP_PKEY *privkey;
+	EVP_PKEY *peerkey;
 };
 
 static DH *get_dh2048(void)
@@ -72,6 +73,7 @@ DH_CTX *dh_ctx_new(void)
 		return NULL;
 	}
 	ctx->privkey = NULL;
+	ctx->peerkey = NULL;
 	return ctx;
 }
 
@@ -123,17 +125,21 @@ clean_return_error:
 void dh_ctx_free(DH_CTX *ctx)
 {
 	EVP_PKEY_free(ctx->privkey);
+	EVP_PKEY_free(ctx->peerkey);
 	OPENSSL_clear_free(ctx, sizeof(DH_CTX));
 }
 
-unsigned char *dh_derive_secret(DH_CTX *dhctx, unsigned char *peerkey, size_t len)
+bool dh_ctx_set_peerkey(DH_CTX *ctx, unsigned char *peerkey, size_t len)
 {
-	assert(dhctx && peerkey);
+	ctx->peerkey = pem_deserialize_pubkey(peerkey, len);
+	return !!ctx->peerkey;
+}
+
+unsigned char *dh_derive_secret(DH_CTX *dhctx)
+{
+	assert(dhctx);
 	EVP_PKEY_CTX *ctx = NULL;
 	unsigned char *secret = NULL;
-	EVP_PKEY *pkey = pem_deserialize_pubkey(peerkey, len);
-	if (!pkey)
-		return NULL;
 	ctx = EVP_PKEY_CTX_new(dhctx->privkey, NULL);
 	if (!ctx) {
 		REPORT_ERR(EOSSL, "EVP_PKEY_CTX_new() returned NULL.");
@@ -143,7 +149,7 @@ unsigned char *dh_derive_secret(DH_CTX *dhctx, unsigned char *peerkey, size_t le
 		REPORT_ERR(EOSSL, "EVP_PKEY_derive_init() failed.");
 		goto clean_return_error;
 	}
-	if (EVP_PKEY_derive_set_peer(ctx, pkey) != 1) {
+	if (EVP_PKEY_derive_set_peer(ctx, dhctx->peerkey) != 1) {
 		REPORT_ERR(EOSSL, "EVP_PKEY_derive_set_peer() failed.");
 		goto clean_return_error;
 	}
@@ -161,17 +167,13 @@ unsigned char *dh_derive_secret(DH_CTX *dhctx, unsigned char *peerkey, size_t le
 		REPORT_ERR(EOSSL, "EVP_PKEY_derive() failed (2).");
 		goto clean_return_error;
 	}
-	EVP_PKEY_free(pkey);
 	EVP_PKEY_CTX_free(ctx);
 	unsigned char *hash = digest_sha256(secret, secretlen);
 	OPENSSL_clear_free(secret, secretlen);
 	memdbg_dump("DIFFIE-HELLMAN HASHED SECRET", hash, SHA256_DIGEST_LENGTH);
 	return hash;
 clean_return_error:
-	EVP_PKEY_free(pkey);
-	if (ctx)
-		EVP_PKEY_CTX_free(ctx);
-	if (secret)
-		OPENSSL_free(secret);
+	EVP_PKEY_CTX_free(ctx);
+	OPENSSL_free(secret);
 	return NULL;
 }

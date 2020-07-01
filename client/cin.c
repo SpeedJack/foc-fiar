@@ -1,11 +1,23 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif /* HAVE_CONFIG_H */
+
 #include "client/cin.h"
 #include "cout.h"
 #include "stringop.h"
+#include <openssl/crypto.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
-#include <termios.h>
 #include <unistd.h>
+
+#ifdef HAVE_TERMIOS_H
+#include <termios.h>
+#endif /* HAVE_TERMIOS_H */
+
+#if defined _WIN32 || __CYGWIN__
+#include <windows.h>
+#endif /* defined _WIN32 || __CYGWIN__ */
 
 /*
  * Flushes the stdin buffer by reading all characters remaining in it and
@@ -57,32 +69,43 @@ char cin_read_char(void)
 	return (char)c;
 }
 
-char read_command(char prompt, char *params, cmd_validity_cb *validity_cb)
+bool cin_ask_question(bool default_yes, const char *question, ...)
 {
-	char cmd[MAX_CMD_SIZE];
+	va_list args;
+	va_start(args, question);
+	char c;
 	do {
-		putchar(prompt);
-		putchar(' ');
+		va_list ap;
+		va_copy(ap, args);
+		vprintf(question, args);
+		va_end(ap);
+		printf(" [%c/%c] ", default_yes ? 'Y' : 'y', default_yes ? 'n' : 'N');
 		fflush(stdout);
+		c = cin_read_char();
+		if (c == '\n')
+			c = default_yes ? 'y' : 'n';
+	} while (c != 'y' && c != 'n' && c != 'Y' && c != 'N');
+	va_end(args);
+	return c == 'y' || c == 'Y';
+}
+
+char cin_read_command(char *params, cmd_validity_cb *validity_cb)
+{
+	char buf[MAX_CMD_SIZE];
+	char *cmd = buf;
+	do {
 		int len = cin_read_line(cmd, MAX_CMD_SIZE);
 		if (len < 0) {
 			cout_print_error("Reached EOF.");
 			return 'q';
 		}
-		if (len == 0) {
-			cout_print_error("Type a command.");
-			continue;
-		}
+		if (len == 0)
+			return '?';
 		if (len > MAX_CMD_SIZE - 1) {
 			cout_print_error("Command is too long.");
-			continue;
+			return '?';
 		}
-		char *pcmd = &cmd[0];
-		string_trim(&pcmd);
-		if (!validity_cb(cmd)) {
-			cout_print_error("Invalid command.");
-			continue;
-		}
+		string_trim(&cmd);
 		*params = '\0';
 		char *end = strchr(cmd, ' ');
 		char *pars = NULL;
@@ -92,25 +115,77 @@ char read_command(char prompt, char *params, cmd_validity_cb *validity_cb)
 			string_trim(&pars);
 			strcpy(params, pars);
 		}
-		return tolower(cmd[0]);
+		if (!validity_cb(cmd, strlen(params) > 0))
+			return '?';
+		return tolower(*cmd);
 	} while(true);
 }
 
-char *ask_password(const char *prompt)
+static void echo_on(void)
 {
-	static char buffer[256];
+#ifdef _WIN32
+	DWORD mode;
+	HANDLE h = GetStdHandle(STD_INPUT_HANDLE);
+	if (GetConsoleMode(h, &mode)) {
+		mode |= ENABLE_ECHO_INPUT;
+		SetConsoleMode(h, mode);
+	}
+#elif defined HAVE_TERMIOS_H
 	struct termios tio;
-	printf("%s: ", prompt);
-	fflush(stdout);
+	tcgetattr(STDIN_FILENO, &tio);
+	tio.c_lflag |= ECHO;
+	tcsetattr(STDIN_FILENO, TCSANOW, &tio);
+#else
+	return;
+#endif
+}
+
+static void echo_off(void)
+{
+#ifdef _WIN32
+	DWORD mode;
+	HANDLE h = GetStdHandle(STD_INPUT_HANDLE);
+	if (GetConsoleMode(h, &mode)) {
+		mode &= ~ENABLE_ECHO_INPUT;
+		SetConsoleMode(h, mode);
+	}
+#elif defined HAVE_TERMIOS_H
+	struct termios tio;
 	tcgetattr(STDIN_FILENO, &tio);
 	tio.c_lflag &= ~ECHO;
 	tcsetattr(STDIN_FILENO, TCSANOW, &tio);
-	char *pbuf = buffer;
-	if (cin_read_line(buffer, 256) > 256) {
-		cout_print_error("Passwords longer than 256 characters are not supported.");
-		pbuf = NULL;
+#else
+	return;
+#endif
+}
+
+char *cin_ask_passphrase(const char *username, int size)
+{
+	char *buffer = OPENSSL_malloc(size);
+	if (!buffer) {
+		cout_print_error("Can not allocate space for pass phrase.");
+		return NULL;
 	}
-	tio.c_lflag &= ECHO;
-	tcsetattr(STDIN_FILENO, TCSANOW, &tio);
-	return pbuf;
+	do {
+		printf("Enter pass phrase for \"%s\": ", username);
+		fflush(stdout);
+		echo_off();
+		int len = cin_read_line(buffer, size);
+		echo_on();
+		if (len > size - 1) {
+			cout_printf_error("Passwords longer than %d characters are not supported.", size - 1);
+			continue;
+		}
+		if (len == 0) {
+			cout_print_error("Password is required.");
+			continue;
+		}
+		if (len < 0) {
+			cout_print_error("Reached EOF.");
+			OPENSSL_clear_free(buffer, size);
+			return NULL;
+		}
+		break;
+	} while(true);
+	return buffer;
 }

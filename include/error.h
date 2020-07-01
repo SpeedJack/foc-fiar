@@ -5,13 +5,15 @@
 #include <stdbool.h>
 #include <stdnoreturn.h>
 
-enum error_code {
-	ENOERR, EALLOC, EFILE, ENET, EINVMSG, ETOOBIG, EREPLAY, EINVACK,
-	EINVSIG, EGCM, ETOOMUCH, EINVCERT, EPEERERR, EOSSL, EUNSPEC
+enum __attribute__((packed)) error_code {
+	ENOERR, EALLOC, EFILE, ENET, ETIMEOUT, ECONNCLOSE, EINVMSG, ETOOBIG,
+	EREPLAY, EINVHASH, EINVSIG, EGCM, ETOOMUCH, EINVCERT, EPEERERR,
+	EOSSL, EUNSPEC, ENOREG, ENOUSER, EINVMOVE, EINVMSG_P, EUNSPEC_P
 };
 
 extern void error_clear(void);
 extern enum error_code error_get(void);
+extern enum error_code error_get_net_code(void);
 extern void error_vsetf(enum error_code c, const char *format, va_list ap);
 extern void error_setf(enum error_code c, const char *format, ...);
 extern void error_set(enum error_code c, const char *msg);
@@ -32,8 +34,9 @@ static inline void error_disable_autoprint(void)
 }
 
 #define _REPORT_ERR(code, msg, file, func, line)			\
-	error_setf(code, msg ? "%s:%d:%s(): %s"				\
-			: "Error reported by %3$s() at %2$s:%1$d.",	\
+	error_setf(code, (msg && *(char *)(msg) != '\0')		\
+			? "%s:%d:%s(): %s"				\
+			: "Error reported by %3$s() at %1$s:%2$d.",	\
 		file, line, func, msg)
 
 #define REPORT_ERR(code, msg)						\

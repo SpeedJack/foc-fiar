@@ -64,9 +64,10 @@ static bool ctx_update(struct gcm_ctx *ctx, bool enc)
 		OPENSSL_free(input);
 		return false;
 	}
-	memcpy(ctx->iv, &hash[9], sizeof(ctx->iv));
+	memcpy(ctx->iv, &hash[10], sizeof(ctx->iv));
 	memdbg_dump("GCM NEW IV", ctx->iv, sizeof(ctx->iv));
-	OPENSSL_free(input);
+	OPENSSL_clear_free(input, sizeof(ctx->iv) + 2*sizeof(uint32_t));
+	OPENSSL_clear_free(hash, SHA256_DIGEST_LENGTH);
 	enc ? ctx->enc_counter++ : ctx->dec_counter++;
 	return true;
 }

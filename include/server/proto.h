@@ -5,11 +5,14 @@
 #include "messages.h"
 #include "protocol.h"
 
-extern struct error *proto_get_last_error(void);
-extern void proto_clear_last_error(void);
 extern struct client_hello *proto_recv_hello(PROTO_CTX *ctx);
 extern bool proto_send_cert(PROTO_CTX *ctx, X509 *cert);
-extern bool proto_send_hello(PROTO_CTX *ctx, const char *username, uint32_t nonce);
-extern bool proto_run_dh(PROTO_CTX *ctx);
+extern bool proto_send_hello(PROTO_CTX *ctx, const char *username);
+extern bool proto_send_player_list(PROTO_CTX *ctx, struct user_list *list);
+extern bool proto_send_current_error(PROTO_CTX *ctx);
+extern bool proto_send_chall_req(PROTO_CTX *ctx, char *username);
+extern bool proto_send_chall_res(PROTO_CTX *ctx, bool accept);
+extern bool proto_send_client_info(PROTO_CTX *ctx, const char *addr,
+	uint16_t port, EVP_PKEY *pkey, uint32_t nonce);
 
 #endif /* SERVER_PROTO_H */

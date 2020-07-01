@@ -6,6 +6,7 @@
 
 #include "client/cin.h"
 #include "client/connect4.h"
+#include "client/game.h"
 #include "client/proto.h"
 #include "cout.h"
 #include "error.h"
@@ -44,9 +45,11 @@ struct config {
 	char crl_file[PATH_MAX];
 };
 
+static int server_sock;
 static PROTO_CTX *server_ctx;
 static char username[MAX_USERNAME_LEN + 1];
 static uint16_t game_port;
+static EVP_PKEY *privkey;
 
 #define _STRINGIZE(x) #x
 #define STRINGIZE(x) _STRINGIZE(x)
@@ -84,7 +87,21 @@ static void print_cmd_help(void)
 
 static void list_users(void)
 {
-	puts("TODO");
+	struct user_list *ulist = proto_ask_player_list(server_ctx);
+	if (!ulist) {
+		error_print();
+		return;
+	}
+	if (ulist->count == 0) {
+		puts("No one online.");
+		return;
+	}
+	printf("%-" STRINGIZE(MAX_USERNAME_LEN) "s\t%7s\n\n", "USERNAME", "STATUS");
+	for (unsigned int i = 0; i < ulist->count; i++) {
+		printf("%-" STRINGIZE(MAX_USERNAME_LEN) "s\t%7s\n",
+			ulist->users[i].username,
+			ulist->users[i].in_game ? "IN GAME" : "IDLE");
+	}
 }
 
 static void challenge_user(const char *opponent)
@@ -94,38 +111,117 @@ static void challenge_user(const char *opponent)
 		cout_print_error("Invalid username.");
 		return;
 	}
-	puts("TODO");
-	puts(opponent);
+	struct client_info *infos;
+	if (!proto_chall(server_ctx, opponent, &infos)) {
+		error_print();
+		return;
+	}
+	if (!infos) {
+		printf("%s rejected your challenge.\n", opponent);
+		return;
+	}
+	game_start(username, opponent, game_port, privkey, *infos);
 }
 
-static bool is_valid_command(char *cmd)
+static bool is_valid_command(char *cmd, bool has_params)
 {
 	cmd = string_to_lower(cmd);
-	return 	string_starts_with("quit", cmd)
-		|| string_starts_with("exit", cmd);
+	return 	(string_starts_with("help", cmd) && !has_params)
+		|| (string_starts_with("list", cmd) && !has_params)
+		|| (string_starts_with("challenge", cmd) && has_params)
+		|| (string_starts_with("quit", cmd) && !has_params)
+		|| (string_starts_with("exit", cmd) && !has_params);
+}
+
+static void process_server_msg(void)
+{
+	struct chall_req *req = proto_recv_chall_req(server_ctx);
+	if (!req) {
+		if (error_get() == ECONNCLOSE) {
+			error_print();
+			EVP_PKEY_free(privkey);
+			proto_ctx_free(server_ctx);
+			exit(EXIT_FAILURE);
+		}
+		error_print();
+		return;
+	}
+	char opponent[MAX_USERNAME_LEN + 1];
+	strncpy(opponent, req->username, MAX_USERNAME_LEN);
+	opponent[MAX_USERNAME_LEN] = '\0';
+	bool res = cin_ask_question(true, "%s wants to play with you. Accept?", opponent);
+	if (!proto_send_chall_res(server_ctx, res)) {
+		error_print();
+		return;
+	}
+	if (!res) {
+		puts("Challenge rejected.");
+		return;
+	}
+	struct client_info *infos = proto_recv_client_info(server_ctx);
+	if (!infos) {
+		error_print();
+		return;
+	}
+	game_start(username, opponent, game_port, privkey, *infos);
+
+}
+
+static void process_command(void)
+{
+	char params[MAX_CMD_SIZE];
+	char cmd = cin_read_command(params, is_valid_command);
+	switch (cmd) {
+	case 'l':
+		list_users();
+		break;
+	case 'c':
+		challenge_user(params);
+		break;
+	case 'h':
+		print_cmd_help();
+		break;
+	case 'q':
+	case 'e':
+		EVP_PKEY_free(privkey);
+		proto_ctx_free(server_ctx);
+		exit(EXIT_SUCCESS);
+	case '?':
+	default:
+		cout_print_error("Invalid command.");
+	}
 }
 
 static void repl(void)
 {
-	char params[MAX_CMD_SIZE];
 	while (true) {
-		char cmd = read_command('>', params, is_valid_command);
-		switch (cmd) {
-		case 'l':
-			list_users();
-			continue;
-		case 'c':
-			challenge_user(params);
-			continue;
-		case 'h':
-			print_cmd_help();
-			continue;
-		case 'q':
-		case 'e':
-			proto_ctx_free(server_ctx);
-			exit(EXIT_SUCCESS);
-		default:
-			cout_print_error("Invalid command.");
+		printf("> ");
+		fflush(stdout);
+		fd_set readset;
+		FD_ZERO(&readset);
+		FD_SET(server_sock, &readset);
+		FD_SET(STDIN_FILENO, &readset);
+		int nfds = (server_sock > STDIN_FILENO ? server_sock : STDIN_FILENO) + 1;
+		int ready = select(nfds, &readset, NULL, NULL, NULL);
+		if (ready == -1 && errno == EINTR) {
+			cout_print_error("Interrupted!");
+			return;
+		}
+		if (ready == -1) {
+			REPORT_ERR(ENET, "select() returned -1.");
+			error_print();
+			return;
+		}
+		for (int fd = 0; fd < nfds; fd++) {
+			if (!FD_ISSET(fd, &readset))
+				continue;
+			if (fd == server_sock) {
+				printf("\n");
+				process_server_msg();
+				continue;
+			}
+			if (fd == STDIN_FILENO)
+				process_command();
 		}
 	}
 }
@@ -157,8 +253,7 @@ static EVP_PKEY *get_server_pubkey(void)
 
 static bool do_hello(void)
 {
-	uint32_t nonce = random_nonce();
-	if (!proto_send_hello(server_ctx, username, game_port, nonce))
+	if (!proto_send_hello(server_ctx, username, game_port))
 		return false;
 	EVP_PKEY *serverkey = get_server_pubkey();
 	if (!serverkey)
@@ -167,32 +262,17 @@ static bool do_hello(void)
 	struct server_hello *hello = proto_recv_hello(server_ctx);
 	if (!hello)
 		return false;
-	if (hello->nonce != nonce) {
-		cout_print_error("Invalid nonce in SERVER_HELLO.");
-		OPENSSL_free(hello);
-		return false;
-	}
-	OPENSSL_free(hello);
 	return true;
 }
 
 static int pass_cb(char *buf, int size, __attribute__((unused)) int rwflag, void *u)
 {
-	int len;
-	while (true) {
-		printf("Enter pass phrase for \"%s\": ", (char *)u);
-		fflush(stdout);
-		len = cin_read_line(buf, size);
-		if (len > size - 1) {
-			cout_print_error("Passsword is too long.");
-			continue;
-		}
-		if (len < 0) {
-			cout_print_error("Reached EOF.");
-			return -1;
-		}
-		break;
-	}
+	char *pass = cin_ask_passphrase((const char *)u, size);
+	if (!pass)
+		return -1;
+	size_t len = strlen(pass);
+	memcpy(buf, pass, len + 1);
+	OPENSSL_clear_free(pass, len + 1);
 	return len;
 }
 
@@ -236,7 +316,6 @@ static EVP_PKEY *load_user_privkey(char *privkey_file)
 static void init_session(struct config cfg)
 {
 	game_port = cfg.game_port;
-	EVP_PKEY *privkey = NULL;
 	do {
 		if (!x509_store_init(cfg.ca_file, cfg.crl_file))
 			break;
@@ -244,10 +323,9 @@ static void init_session(struct config cfg)
 		if (!privkey)
 			break;
 		server_ctx = proto_connect_to_server(cfg.server_addr,
-			cfg.server_port, privkey, cfg.force_ipv);
-		if (!server_ctx || !do_hello() || !proto_run_dh(server_ctx))
+			cfg.server_port, privkey, cfg.force_ipv, &server_sock);
+		if (!server_ctx || !do_hello() || !proto_run_dh(server_ctx, true))
 			break;
-		EVP_PKEY_free(privkey);
 		x509_store_free();
 		return;
 	} while(0);
@@ -258,11 +336,13 @@ static void init_session(struct config cfg)
 	proto_ctx_free(server_ctx);
 	exit(EXIT_FAILURE);
 }
-static void recv_game_move (struct game_move gm){
+
+//TODO
+/*static void recv_game_move (struct game_move gm){
 	c4_insert(gm.column);
-	/*print board*/
+	// print board
 	c4_print_board();
-	/*insert move*/
+	// insert move
 	struct game_move my_gm;
 	printf("Choose column: ");
 	my_gm.column=getchar();
@@ -271,7 +351,7 @@ static void recv_game_move (struct game_move gm){
 
 static void send_game_move(struct game_move gm){
 	proto_send_gcm(ctx, gm, sizeof(gm));
-}
+}*/
 
 /* Client entry-point. */
 int main(int argc, char **argv)
@@ -344,5 +424,7 @@ int main(int argc, char **argv)
 
 	init_session(cfg);
 	repl();
+	EVP_PKEY_free(privkey);
+	proto_ctx_free(server_ctx);
 	return 0;
 }

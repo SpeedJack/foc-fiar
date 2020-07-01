@@ -32,7 +32,7 @@ the `configure` call above:
 
 For debugging, use:
 ```sh
-./configure --enable-debug --enable-warnings --enable-assertions
+./configure --enable-memdbg --enable-warnings --enable-assertions
 ```
 
 When the source is configured, run:

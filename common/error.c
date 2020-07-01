@@ -16,18 +16,28 @@ static const char *errstr[] = {
 	[EALLOC]	= "[EALLOC] An alloc operation failed. Out of memory?",
 	[EFILE]		= "[EFILE] Error while opening a file.",
 	[ENET]		= "[ENET] Network error.",
+	[ETIMEOUT]	= "[ETIMEOUT] Request timed out.",
+	[ECONNCLOSE]	= "[ECONNCLOSE] Peer has closed the connection.",
 	[EINVMSG]	= "[EINVMSG] Received an invalid message.",
 	[ETOOBIG]	= "[ETOOBIG] Received message is too big.",
-	[EREPLAY]	= "[EREPLAY] Received a replayed message. You may be under attack!",
-	[EINVACK]	= "[EINVACK] Received an invalid ACK message.",
+	[EREPLAY]	= "[EREPLAY] Received a replayed message.",
+	[EINVHASH]	= "[EINVHASH] The received message does not specify the correct hash of the last message.",
 	[EINVSIG]	= "[EINVSIG] Received a message signed with an invalid signature.",
 	[EGCM]		= "[EGCM] Error while encrypting/decrypting a GCM message.",
 	[ETOOMUCH]	= "[ETOOMUCH] Performed too much GCM operations, restart the application to reinitialize GCM key and IV.",
 	[EINVCERT]	= "[EINVCERT] Server certificate is not valid.",
 	[EPEERERR]	= "[EPEERERR] Received an error message from peer.",
 	[EOSSL]		= "[EOSSL] Unknown OpenSSL error.",
-	[EUNSPEC]	= "[EUNSPEC] Unknown error."
+	[EUNSPEC]	= "[EUNSPEC] Unknown error.",
+	[ENOREG]	= "You are not registered in the system.",
+	[ENOUSER]	= "The specified user does not exists.",
+	[EINVMOVE]	= "Opponent says that your move is not valid.",
+	[EINVMSG_P]	= "[EINVMSG] Peer says that the last sent message was invalid.",
+	[EUNSPEC_P]	= "[EUNSPEC] Peer encountered an unexpected error."
 };
+
+/* TODO: create specific _P version of error codes for errors that need to be
+ * sent over net. Add auto conversion between the 2 types of errors. */
 
 static int print_sslerror(const char *str, __attribute__((unused)) size_t len,
 	__attribute__((unused)) void *u)
@@ -50,6 +60,23 @@ enum error_code error_get(void)
 	return code;
 }
 
+enum error_code error_get_net_code(void)
+{
+	switch (code) {
+	case ENOERR:
+		return ENOERR;
+	case EINVMSG:
+	case ETOOBIG:
+	case EREPLAY:
+	case EINVHASH:
+	case EINVSIG:
+	case EGCM:
+		return EINVMSG_P;
+	default:
+		return EUNSPEC_P;
+	}
+}
+
 void error_vsetf(enum error_code c, const char *format, va_list ap)
 {
 	errnum = errno;
@@ -60,11 +87,11 @@ void error_vsetf(enum error_code c, const char *format, va_list ap)
 	errmsg = OPENSSL_malloc(ERRMSG_BUF_SIZE);
 	if (!errmsg) {
 		cout_printf_error("error_vsetf: Can not allocate space for error message.\n"
-				"\tMessage: %s\n", format);
+			"\tMessage: %s\n", format);
 		return;
 	}
 	vsnprintf(errmsg, ERRMSG_BUF_SIZE, format, ap);
-	errmsg[ERRMSG_BUF_SIZE] = '\0';
+	errmsg[ERRMSG_BUF_SIZE - 1] = '\0';
 	if (autoprint)
 		error_print();
 }
@@ -74,6 +101,7 @@ void error_setf(enum error_code c, const char *format, ...)
 	va_list args;
 	va_start(args, format);
 	error_vsetf(c, format, args);
+	va_end(args);
 }
 
 void error_set(enum error_code c, const char *msg)
@@ -86,7 +114,7 @@ void error_set(enum error_code c, const char *msg)
 	errmsg = OPENSSL_strdup(msg);
 	if (!errmsg) {
 		cout_printf_error("error_set: Can not allocate space for error message.\n"
-				"\tMessage: %s\n", msg);
+			"\tMessage: %s\n", msg);
 		return;
 	}
 	if (autoprint)
@@ -95,16 +123,12 @@ void error_set(enum error_code c, const char *msg)
 
 char *error_get_message(void)
 {
-	if (code == ENOERR)
+	char *msg = OPENSSL_memdup(errmsg, strlen(errmsg) + 1);
+	if (!msg) {
+		cout_printf_error("error_get_message: Can not allocate space for error message.\n"
+			"\tMessage: %s\n", msg);
 		return NULL;
-	size_t errmsgsize = errmsg ? strlen(errmsg) + 1 : 0;
-	size_t errstrlen = strlen(errstr[code]);
-	char *msg = OPENSSL_malloc(errstrlen + errmsgsize + 1);
-	if (!msg)
-		return NULL;
-	memcpy(msg, errstr[code], errstrlen);
-	msg[errstrlen] = '\n';
-	memcpy(msg + errstrlen + 1, errmsg, errmsgsize);
+	}
 	return msg;
 }
 

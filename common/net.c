@@ -1,7 +1,6 @@
 #include "net.h"
 #include "error.h"
 #include <netinet/in.h>
-#include <sys/socket.h>
 #include <sys/types.h>
 #include <errno.h>
 #include <netdb.h>
@@ -13,10 +12,8 @@
 static inline int net_socket(int family, int socktype, int protocol)
 {
 	int sfd = socket(family, socktype, protocol);
-	if (sfd == -1) {
+	if (sfd == -1)
 		REPORT_ERR(ENET, "socket() failed.");
-		return -1;
-	}
 	return sfd;
 }
 
@@ -37,6 +34,22 @@ static int net_bind(uint16_t port, int socktype)
 	return sfd;
 }
 
+bool net_set_timeout(int sfd, unsigned long millis)
+{
+#ifdef _WIN32
+	DWORD tv = millis;
+#else
+	struct timeval tv;
+	tv.tv_sec = millis / 1000;
+	tv.tv_usec = (millis % 1000) * 1000;
+#endif
+	if (setsockopt(sfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) != 0) {
+		REPORT_ERR(ENET, "setsockopt() failed.");
+		return false;
+	}
+	return true;
+}
+
 int net_udp_bind(uint16_t port)
 {
 	return net_bind(port, SOCK_DGRAM);
@@ -54,11 +67,16 @@ int net_listen(uint16_t port, int socktype)
 	return sfd;
 }
 
-int net_accept(int socket)
+int net_accept(int socket, struct sockaddr *addr, socklen_t *addrlen)
 {
-	int sfd = accept(socket, NULL, NULL);
-	if (sfd == -1 && errno != EAGAIN && errno != EWOULDBLOCK)
-		REPORT_ERR(ENET, "accept() failed.");
+	*addrlen = sizeof(struct sockaddr);
+	int sfd = accept(socket, addr, addrlen);
+	if (sfd == -1) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			REPORT_ERR(ETIMEOUT, NULL);
+		else
+			REPORT_ERR(ENET, "accept() failed.");
+	}
 	return sfd;
 }
 
@@ -107,7 +125,14 @@ bool net_recv(int socket, void *buf, size_t len)
 	while (read < len) {
 		ret = recvfrom(socket, buf, len, 0, NULL, 0);
 		if (ret == -1) {
-			REPORT_ERR(ENET, "recvfrom() failed.");
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
+				REPORT_ERR(ETIMEOUT, NULL);
+			else
+				REPORT_ERR(ENET, "recvfrom() failed.");
+			return false;
+		}
+		if (ret == 0) {
+			REPORT_ERR(ECONNCLOSE, NULL);
 			return false;
 		}
 		read += ret;

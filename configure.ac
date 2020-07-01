@@ -75,7 +75,7 @@ AC_TYPE_UINT32_T
 # Checks for library functions.
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
-AC_CHECK_FUNCS([memset socket strerror strtol])
+AC_CHECK_FUNCS([memset select socket strchr strerror strtol])
 
 # Add config constants
 if test "x$colors" = "xyes"; then

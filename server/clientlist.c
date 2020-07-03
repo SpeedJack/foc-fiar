@@ -5,6 +5,8 @@
 #include <arpa/inet.h>
 #include <string.h>
 
+#include <stdio.h>
+
 struct list_item {
 	struct client client;
 	struct list_head head;
@@ -12,6 +14,7 @@ struct list_item {
 };
 
 static LIST_HEAD(client_list);
+static LIST_HEAD(unregistered);
 
 #define HASHTABLE_SIZE		32
 #define HASH(sock)		sock % HASHTABLE_SIZE
@@ -34,25 +37,48 @@ struct client *clientlist_insert(struct client client)
 	INIT_LIST_HEAD(&item->head);
 	INIT_LIST_HEAD(&item->thead);
 	memcpy(&item->client, &client, sizeof(struct client));
+	list_add(&item->head, &unregistered);
+	list_add(&item->thead, &table[HASH(item->client.socket)]);
+	if (*client.username != '\0' && !clientlist_register(&item->client))
+		return NULL;
+	return &item->client;
+}
+
+bool clientlist_register(struct client *client)
+{
+	if (*client->username == '\0') {
+		REPORT_ERR(EUNSPEC, "No username specified.");
+		return false;
+	}
+	struct list_item *it;
+	list_for_each_entry(it, &unregistered, head)
+		if (&it->client == client)
+			break;
+	if (&it->client != client) {
+		REPORT_ERR(EUNSPEC, "Can not find client to register.");
+		return false;
+	}
+	if (clientlist_search(client->username)) {
+		REPORT_ERR(EUNSPEC, "User with this username already registered.");
+		return false;
+	}
+	list_del(&it->head);
 	if (list_empty(&client_list)) {
-		list_add(&item->head, &client_list);
-		list_add(&item->thead, &table[HASH(item->client.socket)]);
-		return &item->client;
+		list_add(&it->head, &client_list);
+		return true;
 	}
 	struct list_item *cur;
+	int diff = 0;
 	list_for_each_entry(cur, &client_list, head) {
-		int diff = strcmp(client.username, cur->client.username);
-		if (diff == 0) {
-			REPORT_ERR(EUNSPEC, "User already registered.");
-			OPENSSL_free(item);
-			return NULL;
-		}
-		if (diff < 0)
+		diff = strcmp(cur->client.username, client->username);
+		if (diff > 0 || cur->head.next == &client_list)
 			break;
 	}
-	list_add(&item->head, &cur->head);
-	list_add(&item->thead, &table[HASH(item->client.socket)]);
-	return &item->client;
+	if (diff > 0)
+		list_add_tail(&it->head, &cur->head);
+	else
+		list_add(&it->head, &cur->head);
+	return true;
 }
 
 struct user_list *clientlist_get_user_list(struct client *exclude)
@@ -136,6 +162,11 @@ int clientlist_getfdset(fd_set *set)
 		highest = cur->client.socket > highest
 			? cur->client.socket : highest;
 	}
+	list_for_each_entry(cur, &unregistered, head) {
+		FD_SET(cur->client.socket, set);
+		highest = cur->client.socket > highest
+			? cur->client.socket : highest;
+	}
 	return highest;
 }
 
@@ -165,15 +196,21 @@ void clientlist_remove(struct client *client)
 	}
 }
 
-void clientlist_free(void)
+static void clientlist_freelist(struct list_head *list)
 {
 	struct list_item *cur;
 	struct list_item *toremove = NULL;
-	list_for_each_entry(cur, &client_list, head) {
+	list_for_each_entry(cur, list, head) {
 		if (toremove)
 			remove_item(toremove);
 		toremove = cur;
 	}
 	if (toremove)
 		remove_item(toremove);
+}
+
+void clientlist_free(void)
+{
+	clientlist_freelist(&unregistered);
+	clientlist_freelist(&client_list);
 }

@@ -194,6 +194,7 @@ static void process_command(void)
 
 static void repl(void)
 {
+	printf("\n");
 	while (true) {
 		printf("> ");
 		fflush(stdout);

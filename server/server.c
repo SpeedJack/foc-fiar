@@ -182,11 +182,11 @@ static void process_hello(struct client *client, struct client_hello *hello)
 		return;
 	}
 	client->game_port = hello->game_port;
-	strncpy(client->username, hello->username, MAX_USERNAME_LEN + 1);
+	strncpy(client->username, hello->username, MAX_USERNAME_LEN);
 	client->username[MAX_USERNAME_LEN] = '\0';
 	char userkeyfile[PATH_MAX + MAX_USERNAME_LEN + 5];
 	strncpy(userkeyfile, userkey_dir, PATH_MAX);
-	strncat(userkeyfile, client->username, MAX_USERNAME_LEN + 1);
+	strncat(userkeyfile, hello->username, MAX_USERNAME_LEN + 1);
 	strcat(userkeyfile, ".pem");
 	EVP_PKEY *peerkey = pem_read_pubkey(userkeyfile);
 	if (!peerkey) {
@@ -202,13 +202,18 @@ static void process_hello(struct client *client, struct client_hello *hello)
 		return;
 	}
 	if (!proto_send_cert(client->ctx, server_cert)
-		|| !proto_send_hello(client->ctx, client->username)
+		|| !proto_send_hello(client->ctx, hello->username)
 		|| !proto_run_dh(client->ctx, false)) {
 		if (!proto_send_current_error(client->ctx))
 			error_print();
 		clientlist_remove(client);
 	}
 	client->pubkey = peerkey;
+	if (!clientlist_register(client)) {
+		if (!proto_send_current_error(client->ctx))
+			error_print();
+		clientlist_remove(client);
+	}
 }
 
 static void process_request(struct client *client)

@@ -20,10 +20,6 @@ struct list_head {
  * Returns the entry that contains the specified list head. type is the type to
  * return; member is the name of the list head member in the structure.
  */
-/*#define list_entry(ptr, type, member) ({			\
-	const struct list_head *__lptr = (ptr);			\
-	(type *)( (char *)__lptr - offsetof(type, member) );	\
-	})*/
 #define list_entry(ptr, type, member) \
 	(type *)( (char *)ptr - offsetof(type, member) )
 

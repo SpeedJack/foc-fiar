@@ -72,10 +72,12 @@ int net_accept(int socket, struct sockaddr *addr, socklen_t *addrlen)
 	*addrlen = sizeof(struct sockaddr);
 	int sfd = accept(socket, addr, addrlen);
 	if (sfd == -1) {
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
+		if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			error_clear();
 			REPORT_ERR(ETIMEOUT, NULL);
-		else
+		} else {
 			REPORT_ERR(ENET, "accept() failed.");
+		}
 	}
 	return sfd;
 }
@@ -125,13 +127,15 @@ bool net_recv(int socket, void *buf, size_t len)
 	while (read < len) {
 		ret = recvfrom(socket, buf, len, 0, NULL, 0);
 		if (ret == -1) {
-			if (errno == EAGAIN || errno == EWOULDBLOCK)
+			if (errno == EAGAIN || errno == EWOULDBLOCK) {
 				REPORT_ERR(ETIMEOUT, NULL);
-			else
+			} else {
 				REPORT_ERR(ENET, "recvfrom() failed.");
+			}
 			return false;
 		}
 		if (ret == 0) {
+			error_clear();
 			REPORT_ERR(ECONNCLOSE, NULL);
 			return false;
 		}

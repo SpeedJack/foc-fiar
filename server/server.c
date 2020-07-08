@@ -203,7 +203,7 @@ static void process_hello(struct client *client, struct client_hello *hello)
 	}
 	if (!proto_send_cert(client->ctx, server_cert)
 		|| !proto_send_hello(client->ctx, hello->username)
-		|| !proto_run_dh(client->ctx, false)) {
+		|| !proto_run_dh(client->ctx, false, 0)) {
 		if (!proto_send_current_error(client->ctx))
 			error_print();
 		clientlist_remove(client);
@@ -256,9 +256,9 @@ static void process_request(struct client *client)
 
 static void accept_connection(void)
 {
-	struct sockaddr addr;
-	socklen_t addrlen;
-	int conn = net_accept(listen_sock, &addr, &addrlen);
+	struct sockaddr_in6 addr;
+	socklen_t addrlen = sizeof(addr);
+	int conn = net_accept(listen_sock, (struct sockaddr *)&addr, &addrlen);
 	if (conn == -1) {
 		error_print();
 		return;
@@ -270,7 +270,7 @@ static void accept_connection(void)
 		return;
 	}
 	if (!net_set_timeout(conn, SOCKET_TIMEOUT)
-		|| !clientlist_add(ctx, conn, &addr)) {
+		|| !clientlist_add(ctx, conn, (struct sockaddr *)&addr)) {
 		if (!proto_send_current_error(ctx))
 			error_print();
 		proto_ctx_free(ctx);

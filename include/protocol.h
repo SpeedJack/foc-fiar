@@ -25,7 +25,7 @@ extern void *proto_recv_verify(PROTO_CTX *ctx, enum msg_type *type, size_t *len)
 extern void *proto_recv_gcm(PROTO_CTX *ctx, enum msg_type *type, size_t *len);
 extern void *proto_recv(PROTO_CTX *ctx, enum msg_type *type, size_t *len);
 extern void *proto_recv_msg_type(PROTO_CTX *ctx, enum msg_type type, size_t *len);
-extern bool proto_run_dh(PROTO_CTX *ctx, bool send_first);
+extern bool proto_run_dh(PROTO_CTX *ctx, bool send_first, uint32_t nonce);
 extern bool proto_send_error(PROTO_CTX *ctx, enum error_code code, const char *text);
 
 #endif /* COMMON_PROTOCOL_H */

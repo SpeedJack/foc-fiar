@@ -645,7 +645,7 @@ static bool recv_dh_pubkey(PROTO_CTX *ctx, DH_CTX *dhctx, uint32_t *nonce)
 	return res;
 }
 
-bool proto_run_dh(PROTO_CTX *ctx, bool send_first)
+bool proto_run_dh(PROTO_CTX *ctx, bool send_first, uint32_t nonce)
 {
 	dh_fn *first, *second;
 	if (send_first) {
@@ -656,7 +656,6 @@ bool proto_run_dh(PROTO_CTX *ctx, bool send_first)
 		second = send_dh_pubkey;
 	}
 	DH_CTX *dhctx = dh_ctx_new();
-	uint32_t nonce = 0;
 	if (!first(ctx, dhctx, &nonce) || !second(ctx, dhctx, &nonce)) {
 		dh_ctx_free(dhctx);
 		return false;

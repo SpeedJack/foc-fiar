@@ -104,6 +104,24 @@ static void list_users(void)
 	}
 }
 
+static void start_game(const char *opponent, struct client_info *infos)
+{
+	struct game_info gameinfos;
+	strcpy(gameinfos.yourname, username);
+	strcpy(gameinfos.opponentname, opponent);
+	gameinfos.game_port = game_port;
+	gameinfos.opponent_port = infos->game_port;
+	gameinfos.privkey = privkey;
+	gameinfos.peerkey = pem_deserialize_pubkey(infos->key, infos->keylen);
+	if (!gameinfos.peerkey) {
+		error_print();
+		return;
+	}
+	gameinfos.dhnonce = infos->dhnonce;
+	strcpy(gameinfos.opponent_addr, infos->address);
+	game_start(gameinfos);
+}
+
 static void challenge_user(const char *opponent)
 {
 	size_t len = strlen(opponent);
@@ -120,7 +138,7 @@ static void challenge_user(const char *opponent)
 		printf("%s rejected your challenge.\n", opponent);
 		return;
 	}
-	game_start(username, opponent, game_port, privkey, *infos);
+	start_game(opponent, infos);
 }
 
 static bool is_valid_command(char *cmd, bool has_params)
@@ -163,8 +181,7 @@ static void process_server_msg(void)
 		error_print();
 		return;
 	}
-	game_start(username, opponent, game_port, privkey, *infos);
-
+	start_game(opponent, infos);
 }
 
 static void process_command(void)
@@ -325,7 +342,7 @@ static void init_session(struct config cfg)
 			break;
 		server_ctx = proto_connect_to_server(cfg.server_addr,
 			cfg.server_port, privkey, cfg.force_ipv, &server_sock);
-		if (!server_ctx || !do_hello() || !proto_run_dh(server_ctx, true))
+		if (!server_ctx || !do_hello() || !proto_run_dh(server_ctx, true, 0))
 			break;
 		x509_store_free();
 		return;

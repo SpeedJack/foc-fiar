@@ -69,7 +69,6 @@ int net_listen(uint16_t port, int socktype)
 
 int net_accept(int socket, struct sockaddr *addr, socklen_t *addrlen)
 {
-	*addrlen = sizeof(struct sockaddr);
 	int sfd = accept(socket, addr, addrlen);
 	if (sfd == -1) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -151,7 +150,7 @@ bool net_send(int socket, const void *buf, size_t len, struct addrinfo *info)
 	while (sent < len) {
 		ret = sendto(socket, buf, len, 0,
 			info ? info->ai_addr : NULL,
-			info ? sizeof(info->ai_addr) : 0);
+			info ? sizeof(struct sockaddr_in6) : 0);
 		if (ret == -1) {
 			REPORT_ERR(ENET, "send()/sendto() failed.");
 			return false;

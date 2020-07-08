@@ -3,7 +3,17 @@
 
 #include "client/proto.h"
 
-extern void game_start(const char *yourname, const char *opponentname, uint16_t port,
-	EVP_PKEY *privkey, struct client_info infos);
+struct game_info {
+	char yourname[MAX_USERNAME_LEN + 1];
+	char opponentname[MAX_USERNAME_LEN + 1];
+	uint16_t game_port;
+	uint16_t opponent_port;
+	EVP_PKEY *privkey;
+	EVP_PKEY *peerkey;
+	uint32_t dhnonce;
+	char opponent_addr[ADDRSTRLEN];
+};
+
+extern void game_start(struct game_info infos);
 
 #endif /* CLIENT_GAME_H */

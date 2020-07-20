@@ -45,6 +45,7 @@ struct config {
 	char crl_file[PATH_MAX];
 };
 
+static int force_ipv;
 static int server_sock;
 static PROTO_CTX *server_ctx;
 static char username[MAX_USERNAME_LEN + 1];
@@ -104,7 +105,7 @@ static void list_users(void)
 	}
 }
 
-static void start_game(const char *opponent, struct client_info *infos)
+static void start_game(const char *opponent, struct client_info *infos, bool challenger)
 {
 	struct game_info gameinfos;
 	strcpy(gameinfos.yourname, username);
@@ -119,7 +120,11 @@ static void start_game(const char *opponent, struct client_info *infos)
 	}
 	gameinfos.dhnonce = infos->dhnonce;
 	strcpy(gameinfos.opponent_addr, infos->address);
+	gameinfos.ipv = force_ipv;
+	gameinfos.challenger = challenger;
 	game_start(gameinfos);
+	if (!proto_send_game_end(server_ctx))
+		error_print();
 }
 
 static void challenge_user(const char *opponent)
@@ -138,7 +143,7 @@ static void challenge_user(const char *opponent)
 		printf("%s rejected your challenge.\n", opponent);
 		return;
 	}
-	start_game(opponent, infos);
+	start_game(opponent, infos, true);
 }
 
 static bool is_valid_command(char *cmd, bool has_params)
@@ -181,7 +186,7 @@ static void process_server_msg(void)
 		error_print();
 		return;
 	}
-	start_game(opponent, infos);
+	start_game(opponent, infos, false);
 }
 
 static void process_command(void)
@@ -355,22 +360,6 @@ static void init_session(struct config cfg)
 	exit(EXIT_FAILURE);
 }
 
-//TODO
-/*static void recv_game_move (struct game_move gm){
-	c4_insert(gm.column);
-	// print board
-	c4_print_board();
-	// insert move
-	struct game_move my_gm;
-	printf("Choose column: ");
-	my_gm.column=getchar();
-	send_game_move(my_gm);
-}
-
-static void send_game_move(struct game_move gm){
-	proto_send_gcm(ctx, gm, sizeof(gm));
-}*/
-
 /* Client entry-point. */
 int main(int argc, char **argv)
 {
@@ -440,6 +429,7 @@ int main(int argc, char **argv)
 		panicf("Invalid argument: %s.\n" USAGE_STRING,
 			argv[optind], argv[0]);
 
+	force_ipv = cfg.force_ipv;
 	init_session(cfg);
 	repl();
 	EVP_PKEY_free(privkey);

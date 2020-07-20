@@ -50,7 +50,7 @@ typedef bool dh_fn(PROTO_CTX *ctx, DH_CTX *dhctx, uint32_t *nonce);
 #define FIRST_MSG_SIZE		128
 #define FIRST_PL_SIZE		(FIRST_MSG_SIZE - sizeof(struct msg_header))
 #define REMAINING_SIZE(total)	(total - FIRST_PL_SIZE + sizeof(struct msg_header))
-#define MAX_PL_SIZE		(1<<26)
+#define MAX_PL_SIZE		(1<<15)
 #define MAX_SIG_SIZE		MAX_PL_SIZE
 
 PROTO_CTX *proto_ctx_new(int socket, struct addrinfo *peeraddr,
@@ -579,6 +579,8 @@ static inline void *call_recv_by_type(PROTO_CTX *ctx, enum msg_type *type, size_
 		case CHALLENGE_RES:
 		case CHALLENGE_REQ:
 		case CLIENT_INFO:
+		case GAME_MOVE:
+		case GAME_END:
 			return proto_recv_gcm(ctx, type, len);
 		default:
 			return proto_recv(ctx, type, len);

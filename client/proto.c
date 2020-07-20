@@ -99,3 +99,23 @@ bool proto_chall(PROTO_CTX *ctx, const char *opponent,
 	*infos = proto_recv_client_info(ctx);
 	return !!infos;
 }
+
+struct game_move *proto_recv_game_move(PROTO_CTX *ctx)
+{
+	return (struct game_move *)proto_recv_msg_type(ctx, GAME_MOVE, NULL);
+}
+
+bool proto_send_game_move(PROTO_CTX *ctx, unsigned int col)
+{
+	struct game_move move;
+	memset(&move, 0, sizeof(struct game_move));
+	move.column = col;
+	if (!proto_send_gcm(ctx, GAME_MOVE, &move, sizeof(struct game_move)))
+		return false;
+	return true;
+}
+
+bool proto_send_game_end(PROTO_CTX *ctx)
+{
+	return proto_send_gcm(ctx, GAME_END, NULL, 0);
+}

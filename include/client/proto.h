@@ -15,5 +15,8 @@ extern bool proto_send_chall_res(PROTO_CTX *ctx, bool accept);
 extern struct client_info *proto_recv_client_info(PROTO_CTX *ctx);
 extern bool proto_chall(PROTO_CTX *ctx, const char *opponent,
 	struct client_info **infos);
+extern struct game_move *proto_recv_game_move(PROTO_CTX *ctx);
+extern bool proto_send_game_move(PROTO_CTX *ctx, unsigned int col);
+extern bool proto_send_game_end(PROTO_CTX *ctx);
 
 #endif /* CLIENT_PROTO_H */

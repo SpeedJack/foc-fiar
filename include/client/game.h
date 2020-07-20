@@ -12,6 +12,8 @@ struct game_info {
 	EVP_PKEY *peerkey;
 	uint32_t dhnonce;
 	char opponent_addr[ADDRSTRLEN];
+	int ipv;
+	bool challenger;
 };
 
 extern void game_start(struct game_info infos);

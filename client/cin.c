@@ -53,6 +53,30 @@ int cin_read_line(char *buffer, int size)
 	return len - 1;
 }
 
+int cin_read_uint(void)
+{
+	char buf[5];
+	int res = -1;
+	do {
+		int len = cin_read_line(buf, 5);
+		if (len < 0) {
+			cout_print_error("Reached EOF.");
+			return -1;
+		}
+		if (len > 4) {
+			cout_print_error("Too long input.");
+			continue;
+		}
+		if (!string_to_int(buf, &res))
+			continue;
+		if (res < 0) {
+			cout_print_error("Inserted value must be positive.");
+			continue;
+		}
+	} while (false);
+	return res;
+}
+
 /* Reads a non-blank character from stdin and flushes the rest of the buffer. */
 char cin_read_char(void)
 {

@@ -106,8 +106,8 @@ static void process_challenge_res(struct client *client, struct chall_res *cres)
 			error_print();
 		goto clean_return;
 	}
-	if (!proto_send_client_info(client->ctx, client->address,
-		client->game_port, client->pubkey, nonce)) {
+	if (!proto_send_client_info(client->ctx, client->opponent->address,
+		client->opponent->game_port, client->opponent->pubkey, nonce)) {
 		error_print();
 		goto clean_return;
 	}
@@ -216,6 +216,17 @@ static void process_hello(struct client *client, struct client_hello *hello)
 	}
 }
 
+static void process_game_end(struct client *client)
+{
+	struct client *opponent = client->opponent;
+	if (opponent) {
+		opponent->opponent = NULL;
+		opponent->in_game = false;
+	}
+	client->opponent = NULL;
+	client->in_game = false;
+}
+
 static void process_request(struct client *client)
 {
 	enum msg_type type;
@@ -247,6 +258,9 @@ static void process_request(struct client *client)
 		break;
 	case CHALLENGE_RES:
 		process_challenge_res(client, (struct chall_res *)msg);
+		break;
+	case GAME_END:
+		process_game_end(client);
 		break;
 	default:
 		proto_send_error(client->ctx, EINVMSG_P, "Invalid request.");

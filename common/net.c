@@ -7,7 +7,14 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <stdio.h>
+
 #define LISTEN_BACKLOG		SOMAXCONN
+#define RECV_BUFFER_SIZE	(1<<16)
+
+static unsigned char recv_buffer[RECV_BUFFER_SIZE];
+static size_t avail_bytes = 0;
+static bool nonblocking = false;
 
 static inline int net_socket(int family, int socktype, int protocol)
 {
@@ -119,12 +126,38 @@ void net_close(int socket)
 	close(socket);
 }
 
+void net_set_nonblocking(bool noblock)
+{
+	nonblocking = noblock;
+}
+
+static ssize_t recvfrom_noblock(int sockfd, void *buf, size_t len)
+{
+	while (avail_bytes <= 0) {
+		ssize_t ret = recvfrom(sockfd, recv_buffer, RECV_BUFFER_SIZE, MSG_DONTWAIT, NULL, 0);
+		if (ret == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
+			continue;
+		if (ret == -1 || ret == 0)
+			return ret;
+		avail_bytes += ret;
+	}
+	size_t toreturn = len > avail_bytes ? avail_bytes : len;
+	memcpy(buf, recv_buffer, toreturn);
+	avail_bytes -= toreturn;
+	if (avail_bytes > 0)
+		memmove(recv_buffer, recv_buffer + toreturn, avail_bytes);
+	return toreturn;
+}
+
 bool net_recv(int socket, void *buf, size_t len)
 {
 	size_t read = 0;
 	ssize_t ret;
 	while (read < len) {
-		ret = recvfrom(socket, buf, len, 0, NULL, 0);
+		if (nonblocking)
+			ret = recvfrom_noblock(socket, (char *)buf + read, len - read);
+		else
+			ret = recvfrom(socket, (char *)buf + read, len - read, 0, NULL, 0);
 		if (ret == -1) {
 			if (errno == EAGAIN || errno == EWOULDBLOCK) {
 				REPORT_ERR(ETIMEOUT, NULL);
@@ -148,7 +181,7 @@ bool net_send(int socket, const void *buf, size_t len, struct addrinfo *info)
 	size_t sent = 0;
 	ssize_t ret;
 	while (sent < len) {
-		ret = sendto(socket, buf, len, 0,
+		ret = sendto(socket, (char *)buf + sent, len - sent, 0,
 			info ? info->ai_addr : NULL,
 			info ? sizeof(struct sockaddr_in6) : 0);
 		if (ret == -1) {

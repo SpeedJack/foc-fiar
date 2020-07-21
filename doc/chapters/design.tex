@@ -1,6 +1,33 @@
 \chapter{Application design}\label{ch:design}
 
-\ldots
+The application is divided into three components:
+\begin{itemize}
+	\item[\standout{Common}] A library that contains modules that are used
+		both by the server and the client. This includes the protocol
+		implementation, networking functions, PEM serialization, error
+		reporting, console output, \etc; Its code is available in the
+		\code{common} folder;
+	\item[\standout{Server}] The server application which handles the
+		registered users allowing them to log-in and challenge each
+		other. Its code is available in the \code{server} folder;
+	\item[\standout{Client}] The client application that is used by the user
+		to log-in with the server and play the game against other
+		players. Its code is available in the \code{client} folder.
+\end{itemize}
+
+Each components is divided into a number of modules. Each module provides
+functions for a specific functionality of the application and it's compound by a
+\emph{C source file} and a \emph{Header file}. All header files are placed under
+the \code{include} directory.
+
+\figref{fig:modules} shows all the modules of the developed application along
+with their connections with other modules\footnote{Only the main connections are
+represented.}.
+
+\begin{figure}[htb]
+	\includegraphics[width=\textwidth]{modules}
+	\caption{Application modules}\label{fig:modules}
+\end{figure}
 
 \input{design/common}
 \input{design/server}

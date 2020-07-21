@@ -1,3 +1,39 @@
 \chapter{Specifications}\label{ch:specs}
 
-\ldots
+The application developed implements the \emph{Connect 4} (also called
+\emph{Four-In-A-Row}) online game. It allows the users, registered through the
+server, to play the game against each other over the network.
+
+The application allows the users, already registered on the server, to log-in
+using \emph{public key authentication}. Server and client authenticates each
+other verifying that their public keys are valid. The public key of the server
+is verified through a certification authority (CA).
+
+After the log-in, a user can see all the other users connected to the server and
+challenge one of them. If the challenged user accept the challenge, the game is
+started and the two users initiate a \emph{peer-to-peer session} to exchange
+messages regarding the game \idest{the moves they make in the game}.
+
+The server knows when two users are playing and when their game ends. In this
+way, other users that want to play can not challenge a user that is already in a
+game.
+
+The communication between the client and the server and during the
+client-to-client peer-to-peer session are secured using the \openssl{} library.
+In particular, when a client connects to the server or to another client, a
+\emph{key negotiation algorithm}, based on the \emph{Diffie-Hellman key exchange
+algorithm}, is executed. Each message exchanged during this negotiation is
+authenticated using \emph{public key authentication}. When the two parties have
+agreed on the session key, they encrypt each subsequent message using AES
+symmetric encryption in \emph{Galois/Counter Mode} (GCM) with a key of 128 bits
+(AES-128-GCM).
+
+The application is developed using the C language and offer a command-line
+interface (CLI) to the user. The user makes actions in the application by typing
+commands when the \emph{prompt} (\code{>}) is shown. During the game, the
+application shows the game board in a table where the \code{X} symbol represents
+the discs inserted by the user while the \code{O} symbol represents the discs
+inserted by the opponent.
+
+For details on how to run and use the application,
+see~\appendixref{appendix:howtorun}.

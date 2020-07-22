@@ -1,202 +1,109 @@
-<mxfile host="app.diagrams.net" modified="2020-05-28T01:27:25.558Z" agent="5.0 (X11)" etag="92F4qn9cHi4iHgPqaQoZ" version="13.1.4" type="github">
-  <diagram id="8nu-QpESBj4Av-chdzpW" name="Page-1">
-    <mxGraphModel dx="1414" dy="760" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+<mxfile host="app.diagrams.net" modified="2020-07-22T14:37:09.712Z" agent="5.0 (X11)" etag="SMOPGmcevieyEGLC_6oA" version="13.5.0" type="github">
+  <diagram id="cXbzHESKj0TUviMRPuaM" name="key establishment">
+    <mxGraphModel dx="1414" dy="760" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="690" pageHeight="980" math="0" shadow="0">
       <root>
-        <mxCell id="0" />
-        <mxCell id="1" parent="0" />
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-2" value="Sign{Hello, I&#39;m Alice!}" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" parent="1" source="85dQJvhTSg5ZireflkRF-1" target="W4D1wLLK1_SvcZL6G_eq-1" edge="1">
+        <mxCell id="3XxZllVE8ChgkED6ggPo-0" />
+        <mxCell id="3XxZllVE8ChgkED6ggPo-1" parent="3XxZllVE8ChgkED6ggPo-0" />
+        <mxCell id="H6M0hyEs3p998fGF7WWL-2" value="Sign{username, game port}" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" edge="1" parent="3XxZllVE8ChgkED6ggPo-1" source="MnkApLBuk9JBCU4qQ69r-0" target="H6M0hyEs3p998fGF7WWL-0">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="380" y="200" />
+              <mxPoint x="340" y="80" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-6" value="Sign{Ya: DHKE}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" parent="1" source="85dQJvhTSg5ZireflkRF-1" target="W4D1wLLK1_SvcZL6G_eq-1" edge="1">
+        <mxCell id="H6M0hyEs3p998fGF7WWL-7" value="Sign{DH key}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" edge="1" parent="3XxZllVE8ChgkED6ggPo-1" source="MnkApLBuk9JBCU4qQ69r-0" target="H6M0hyEs3p998fGF7WWL-0">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="360" y="300" />
+              <mxPoint x="290" y="200" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-9" value="GCM{get user list}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" parent="1" edge="1">
+        <mxCell id="H6M0hyEs3p998fGF7WWL-9" value="GCM{... session msgs ...}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;startArrow=classic;startFill=1;" edge="1" parent="3XxZllVE8ChgkED6ggPo-1" source="MnkApLBuk9JBCU4qQ69r-0" target="H6M0hyEs3p998fGF7WWL-0">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="360" y="414" />
-            </Array>
-            <mxPoint x="179.81034482758628" y="414" as="sourcePoint" />
-            <mxPoint x="559.5" y="414" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-11" value="GCM{challenge Bob}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" parent="1" edge="1">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="440" y="490" />
-            </Array>
-            <mxPoint x="179.81034482758628" y="490" as="sourcePoint" />
-            <mxPoint x="559.5" y="490" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-18" value="Sign{Ya: DHKE}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" parent="1" source="85dQJvhTSg5ZireflkRF-1" target="W4D1wLLK1_SvcZL6G_eq-13" edge="1">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="530" y="670" />
+              <mxPoint x="320" y="280" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-20" value="GCM{Insert column 3}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" parent="1" source="85dQJvhTSg5ZireflkRF-1" target="W4D1wLLK1_SvcZL6G_eq-13" edge="1">
+        <mxCell id="H6M0hyEs3p998fGF7WWL-13" value="Sign{DH key, pre-shared nonce}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" edge="1" parent="3XxZllVE8ChgkED6ggPo-1" source="MnkApLBuk9JBCU4qQ69r-0" target="H6M0hyEs3p998fGF7WWL-1">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="570" y="750" />
+              <mxPoint x="480" y="400" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-24" value="GCM{.....}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;startArrow=classic;startFill=1;" parent="1" source="85dQJvhTSg5ZireflkRF-1" target="W4D1wLLK1_SvcZL6G_eq-13" edge="1">
+        <mxCell id="H6M0hyEs3p998fGF7WWL-15" value="GCM{... session msgs ...}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;startArrow=classic;startFill=1;" edge="1" parent="3XxZllVE8ChgkED6ggPo-1" source="MnkApLBuk9JBCU4qQ69r-0" target="H6M0hyEs3p998fGF7WWL-1">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="490" y="870" />
+              <mxPoint x="480" y="480" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-28" value="GCM{End Game}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" parent="1" source="85dQJvhTSg5ZireflkRF-1" target="W4D1wLLK1_SvcZL6G_eq-1" edge="1">
+        <mxCell id="MnkApLBuk9JBCU4qQ69r-0" value="Alice" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;" vertex="1" parent="3XxZllVE8ChgkED6ggPo-1">
+          <mxGeometry x="50" width="100" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="H6M0hyEs3p998fGF7WWL-5" value="Sign{received username}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" edge="1" parent="3XxZllVE8ChgkED6ggPo-1" source="H6M0hyEs3p998fGF7WWL-0" target="MnkApLBuk9JBCU4qQ69r-0">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="240" y="1000" />
+              <mxPoint x="300" y="160" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="o_ud04VeACPn14Rz0WgQ-3" value="GCM{UDP port}" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="179.81034482758628" y="360.0344827586207" as="sourcePoint" />
-            <mxPoint x="559.5" y="360.0344827586207" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="85dQJvhTSg5ZireflkRF-1" value="Alice" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;" parent="1" vertex="1">
-          <mxGeometry x="130" y="120" width="100" height="950" as="geometry" />
-        </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-5" value="Cert, Sign{Hello Alice!}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" parent="1" source="W4D1wLLK1_SvcZL6G_eq-1" target="85dQJvhTSg5ZireflkRF-1" edge="1">
+        <mxCell id="H6M0hyEs3p998fGF7WWL-6" value="Certificate" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" edge="1" parent="3XxZllVE8ChgkED6ggPo-1" source="H6M0hyEs3p998fGF7WWL-0" target="MnkApLBuk9JBCU4qQ69r-0">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="360" y="250" />
+              <mxPoint x="300" y="120" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-8" value="Sign{Ys: DHKE}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" parent="1" source="W4D1wLLK1_SvcZL6G_eq-1" target="85dQJvhTSg5ZireflkRF-1" edge="1">
+        <mxCell id="H6M0hyEs3p998fGF7WWL-8" value="Sign{DH key}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" edge="1" parent="3XxZllVE8ChgkED6ggPo-1" source="H6M0hyEs3p998fGF7WWL-0" target="MnkApLBuk9JBCU4qQ69r-0">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="360" y="330" />
+              <mxPoint x="300" y="240" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-10" value="GCM{user list[]}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" parent="1" edge="1">
+        <mxCell id="H6M0hyEs3p998fGF7WWL-10" value="GCM{peer connection data, pre-shared nonce}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" edge="1" parent="3XxZllVE8ChgkED6ggPo-1" source="H6M0hyEs3p998fGF7WWL-0" target="MnkApLBuk9JBCU4qQ69r-0">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="350" y="452" />
-            </Array>
-            <mxPoint x="559.5" y="452" as="sourcePoint" />
-            <mxPoint x="179.81034482758628" y="452" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-14" value="GCM{challenge request by Alice}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" parent="1" source="W4D1wLLK1_SvcZL6G_eq-1" target="W4D1wLLK1_SvcZL6G_eq-13" edge="1">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="750" y="520" />
+              <mxPoint x="300" y="360" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-16" value="GCM{Bob&#39;s pubkey, address, port}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" parent="1" source="W4D1wLLK1_SvcZL6G_eq-1" target="85dQJvhTSg5ZireflkRF-1" edge="1">
+        <mxCell id="H6M0hyEs3p998fGF7WWL-11" value="GCM{peer connection data, pre-shared nonce}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" edge="1" parent="3XxZllVE8ChgkED6ggPo-1" source="H6M0hyEs3p998fGF7WWL-0" target="H6M0hyEs3p998fGF7WWL-1">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="250" y="600" />
+              <mxPoint x="650" y="360" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="o_ud04VeACPn14Rz0WgQ-4" value="GCM{ACK}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="559.5" y="386" as="sourcePoint" />
-            <mxPoint x="179.5" y="386" as="targetPoint" />
-          </mxGeometry>
+        <mxCell id="H6M0hyEs3p998fGF7WWL-0" value="Server" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;" vertex="1" parent="3XxZllVE8ChgkED6ggPo-1">
+          <mxGeometry x="330" width="100" height="520" as="geometry" />
         </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-1" value="Server" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;" parent="1" vertex="1">
-          <mxGeometry x="510" y="120" width="100" height="960" as="geometry" />
-        </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-15" value="GCM{accept}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" parent="1" source="W4D1wLLK1_SvcZL6G_eq-13" target="W4D1wLLK1_SvcZL6G_eq-1" edge="1">
+        <mxCell id="H6M0hyEs3p998fGF7WWL-14" value="Sign{DH key, pre-shared nonce}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" edge="1" parent="3XxZllVE8ChgkED6ggPo-1" source="H6M0hyEs3p998fGF7WWL-1" target="MnkApLBuk9JBCU4qQ69r-0">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="710" y="560" />
+              <mxPoint x="480" y="440" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-19" value="Sign{Yb: DHKE}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" parent="1" source="W4D1wLLK1_SvcZL6G_eq-13" target="85dQJvhTSg5ZireflkRF-1" edge="1">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="480" y="710" />
-            </Array>
+        <mxCell id="H6M0hyEs3p998fGF7WWL-1" value="Bob" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;" vertex="1" parent="3XxZllVE8ChgkED6ggPo-1">
+          <mxGeometry x="610" width="100" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="H6M0hyEs3p998fGF7WWL-16" value="" style="endArrow=none;dashed=1;html=1;dashPattern=1 3;strokeWidth=2;" edge="1" parent="3XxZllVE8ChgkED6ggPo-1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="40" y="320" as="sourcePoint" />
+            <mxPoint x="720" y="320" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-21" value="GCM{ACK}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" parent="1" source="W4D1wLLK1_SvcZL6G_eq-13" target="85dQJvhTSg5ZireflkRF-1" edge="1">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="360" y="790" />
-            </Array>
-          </mxGeometry>
+        <mxCell id="H6M0hyEs3p998fGF7WWL-17" value=". . ." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=40;rotation=90;" vertex="1" parent="3XxZllVE8ChgkED6ggPo-1">
+          <mxGeometry x="490" y="120" width="100" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-22" value="GCM{Insert column 5}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" parent="1" source="W4D1wLLK1_SvcZL6G_eq-13" target="85dQJvhTSg5ZireflkRF-1" edge="1">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="430" y="830" />
-            </Array>
-          </mxGeometry>
+        <mxCell id="H6M0hyEs3p998fGF7WWL-18" value="Alice and Bob start a game:" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;" vertex="1" parent="3XxZllVE8ChgkED6ggPo-1">
+          <mxGeometry x="10" y="320" width="90" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-13" value="Bob" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;" parent="1" vertex="1">
-          <mxGeometry x="850" y="120" width="100" height="960" as="geometry" />
-        </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-17" value="GCM{Alice&#39;s pubkey, address, port}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" parent="1" source="W4D1wLLK1_SvcZL6G_eq-1" target="W4D1wLLK1_SvcZL6G_eq-13" edge="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="990" y="650" as="sourcePoint" />
-            <mxPoint x="610" y="650" as="targetPoint" />
-            <Array as="points">
-              <mxPoint x="690" y="600" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-26" value="GCM{Insert column 3}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" parent="1" edge="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="180" y="910" as="sourcePoint" />
-            <mxPoint x="900" y="910" as="targetPoint" />
-            <Array as="points">
-              <mxPoint x="570.5" y="910" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-27" value="GCM{ACK, You Win}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" parent="1" edge="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="900" y="950" as="sourcePoint" />
-            <mxPoint x="180" y="950" as="targetPoint" />
-            <Array as="points">
-              <mxPoint x="360.5" y="950" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-30" value="GCM{End Game}" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=classic;startFill=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;endArrow=none;endFill=0;" parent="1" edge="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="560" y="1000" as="sourcePoint" />
-            <mxPoint x="900" y="1000" as="targetPoint" />
-            <Array as="points">
-              <mxPoint x="620.5" y="1000" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-32" value="&lt;h1&gt;DHKE&lt;br&gt;&lt;/h1&gt;&lt;div&gt;&lt;div&gt;Shared secret: 2048 bits (256 bytes)&lt;br&gt;&lt;/div&gt;&lt;div&gt;GCM IV size: 12 bytes (96 bits)&lt;br&gt;GCM AES 192 CBC key size: 192 bits (24 bytes)&lt;/div&gt;GCM init: DH secret -&amp;gt; SHA-256 (32 bytes) -&amp;gt; split{0..23}{24-31}&lt;br&gt;split[0]: GCM key&lt;br&gt;split[1]: first GCM IV&lt;br&gt;next GCM IV: SHA-256(last_msg_counter || previous_iv || last_recv_nonce) -&amp;gt; substr{10..21}&lt;br&gt;msg_counter++ the same for send and recv&lt;br&gt;accept msgs only if recv_msg_counter &amp;gt; msg_counter&lt;br&gt;&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
-          <mxGeometry x="1000" y="100" width="570" height="190" as="geometry" />
-        </mxCell>
-        <mxCell id="W4D1wLLK1_SvcZL6G_eq-33" value="-&amp;gt; Login(Alice, p2p port)&lt;br&gt;&amp;lt;- ack" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
-          <mxGeometry x="630" y="260" width="200" height="30" as="geometry" />
-        </mxCell>
-        <mxCell id="o_ud04VeACPn14Rz0WgQ-1" value="&lt;h1&gt;Implementation Notes&lt;br&gt;&lt;/h1&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Recv buffer of 4096 bytes (realloc if body &amp;gt; 4047).&lt;br&gt;&lt;/div&gt;&lt;div&gt;the receiver reads a first message of fixed size (16 bytes + 17 bytes + base payload):&lt;br&gt;struct tagged_msg {&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; unsigned char tag[16];&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; struct msg msg; // maybe unsigned char[] (nested fam allowed?)&lt;br&gt;&lt;/div&gt;&lt;div&gt;}&lt;br&gt;struct msg {&lt;br&gt;&lt;/div&gt;&lt;div&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; struct msg_header; // 17 bytes&lt;br&gt;&lt;/div&gt;&lt;div&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; unsigned char payload[]; // dimension to accept most exchanged msgs; add 00..0 padding if needed&lt;br&gt;&lt;/div&gt;&lt;div&gt;}&lt;br&gt;struct msg_header {&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; enum MSG_TYPE type; // 1 byte (packed)&lt;br&gt;&lt;/div&gt;&lt;div&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; uint32_t counter; // 4 bytes; start from 1&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; uint32_t ack_msg; // 4 bytes; ack of last msg received (0 if not an ACK)&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; uint32_t payload_size; // 4 bytes&lt;/div&gt;&lt;div&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; uint32_t nonce; // 4 byte&lt;br&gt;&lt;/div&gt;&lt;div&gt;}&lt;br&gt;If payload_size &amp;gt; sizeof(payload), the receiver takes the remaining bytes from subsequent msg (encrypted separately).&lt;br&gt;Even subsequent msg must have a header with different nonce and counter++; type = previous; payload_size = previous.&lt;br&gt;4063 + 17 (header) + 16 (tag) = 4096&lt;br&gt;&lt;/div&gt;&lt;div&gt;When a msg has been read in the recv buffer, it is decrypted GCM and checked against the tag and counter.&lt;br&gt;The function returns only when full message has been received.&lt;br&gt;&lt;/div&gt;&lt;div&gt;The entire payload is copied in a newly allocated buffer of size payload_size (does not contains header and tag).&lt;/div&gt;&lt;div&gt;Caller will need to free the buffer.&lt;/div&gt;&lt;div&gt;The type of the message is returned in another variable.&lt;/div&gt;&lt;div&gt;next_accepted_counter (or sent) = received counter++&lt;br&gt;on server: 1 counter for each client&lt;br&gt;&lt;/div&gt;&lt;br&gt;nonce generation: by a CSPRNG, seeded with random entropy&lt;br&gt;&lt;br&gt;&lt;div&gt;BEFORE GCM INIT:&lt;br&gt;struct signed_msg {&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; uint32_t signature_size;&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; struct msg; // maybe unsigned char[] (nested fam allowed?)&lt;br&gt;}&lt;br&gt;total size = payload_size + signature_size&lt;br&gt;also header is signed&lt;br&gt;client hello: payload contains username null terminated; then signature&lt;br&gt;server hello: payload contains received username null terminated&lt;/div&gt;&lt;div&gt;dhke msgs: payload contains computed numbers&lt;br&gt;if splitting is needed, sign separately each part&lt;br&gt;server cert (separate message from hello and sent before it):&lt;br&gt;struct srv_cert_msg = msg {&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; struct msg_header;&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; unsigned char cert[]; // contains cert bio&lt;br&gt;}&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" vertex="1" parent="1">
-          <mxGeometry x="1000" y="310" width="750" height="730" as="geometry" />
-        </mxCell>
-        <mxCell id="o_ud04VeACPn14Rz0WgQ-2" value="&lt;h1&gt;Modules&lt;/h1&gt;&lt;div&gt;COMMON:&lt;/div&gt;&lt;div&gt;file&lt;/div&gt;&lt;div&gt;[random]&lt;/div&gt;&lt;div&gt;digest (sha-256)&lt;/div&gt;&lt;div&gt;sign&lt;br&gt;&lt;/div&gt;&lt;div&gt;dh&lt;/div&gt;&lt;div&gt;gcm&lt;/div&gt;&lt;div&gt;net - connect, listen, accept, ready (bytes avail), bind, send recv&lt;br&gt;&lt;/div&gt;&lt;div&gt;proto - message structs, recv, send&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;SERVER:&lt;/div&gt;&lt;div&gt;user_list, [user]&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;CLIENT:&lt;/div&gt;cert" style="text;html=1;strokeColor=none;fillColor=none;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" vertex="1" parent="1">
-          <mxGeometry x="1580" y="30" width="400" height="270" as="geometry" />
+        <mxCell id="H6M0hyEs3p998fGF7WWL-19" value="Alice logs in with the server:" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;" vertex="1" parent="3XxZllVE8ChgkED6ggPo-1">
+          <mxGeometry y="40" width="100" height="30" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

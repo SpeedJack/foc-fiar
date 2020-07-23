@@ -1,5 +1,79 @@
 \chapter{Protocol design}\label{ch:proto}
 
-\ldots
+The implementation of the protocol can be found in the \code{common/protocol.c}
+file.
 
+Through this module, the application (either the client or the server) can send
+and receive three different type of messages:
+\begin{enumerate}
+	\item \standout{Plain message}: a plaintext message. These messages are
+		used only by the server to send its public certificate to the
+		client;
+	\item \standout{Signed message}: a plaintext message with a signature
+		appended to it. The signature is generated using the \openssl{}
+		EVP API with SHA-256 as hashing algorithm and RSA as signing
+		algorithm. These messages are used before the GCM initialization
+		during the key establishment process described in
+		\secref{sec:keyxchng};
+	\item \standout{GCM encrypted message}: a message encrypted and
+		authenticated with GCM AES-128. These messages are used when the
+		GCM module has been initialized after a session key has been
+		established.
+\end{enumerate}
+
+All the messages exchanged by the application, regardless of their type, are
+prefixed with the header shown in~\lstref{lst:msgheader}.
+
+\lstinputlisting[language=c, label={lst:msgheader}, caption={Header prefixed to
+each message of the application}]{msgheader.c}
+
+Here, we describe each field of the header and their use:
+\begin{itemize}
+	\item[\standout{magic}] A magic number, always equal to \code{0xDECODE}.
+		It is used to ensure that the received message has a valid
+		header;
+	\item[\standout{counter}] An incremental message counter. It starts from
+		\(1\) and it's incremented for each message sent. It is used to
+		avoid replay attacks;
+	\item[\standout{type}] The message type, used to convert the payload to
+		the correct data structure;
+	\item[\standout{payload\_size}] Total payload size. For the usage of
+		this field, see below;
+	\item[\standout{nonce}] A random 4 bytes integer. It is use manly to add
+		randomness to the message (why this is useful is explained in
+		\secref{sec:keyxchng}. It is also used (among other variables) to derive a new
+		initialization vector for GCM after each message exchanged (see
+		\secref{sec:protosecurity} for details);
+	\item[\standout{prev\_hash}] SHA-256 hash of the last received message.
+		This is used for the security of signed messages. See
+		\secref{sec:protosecurity} for details.
+\end{itemize}
+
+Before GCM initialization the receiver can extract the total length of any
+message by just reading the message header (of fixed size) from the socket and
+then read the entire payload of size equal to \code{header.payload\_size}.
+
+In case of signed messages, after the message (with header and payload), the
+sender appends a 4 byte integer, which represents the size of the signature, and
+the signature.
+
+After GCM initialization, since the messages are encrypted, there is no way for
+the receiver to extract the header without knowing \emph{a priori} the size of
+the entire message.
+
+In this case, if the total message size (header plus payload) is larger than 128
+bytes, the message is split into two smaller messages: the first with a total
+size of 128 bytes; the second with a variable size (the header plus the
+remaining payload). An header is prefixed to both messages.
+
+If the total message size is lower than 128 bytes, the payload is padded with
+zeroes until a size of 128 total bytes is reached. The padding portion of the
+payload can be separated by the useful data by evaluating the
+\code{payload\_size} field of the header.
+
+This ensures that, in case of GCM message, the receiver always gets a message of
+128 bytes. Then, it can determine the size of the eventual second GCM message by
+reading the \code{payload\_size} field of the header.
+
+\input{proto/security}
 \input{proto/keyxchng}

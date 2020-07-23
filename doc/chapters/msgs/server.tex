@@ -1,3 +1,33 @@
 \section{Client-Server}\label{sec:servermsgs}
 
-\ldots
+\begin{itemize}
+	\item[] \standout{CLIENT\_HELLO} \emph{(signed)} The message sent by the
+		client to the server at the beginning of the session. It carries
+		the username of the client, and the port where the client can be
+		contacted by other clients to start a game.
+	\item[] \standout{SERVER\_CERT} \emph{(plain)} The message sent by the
+		server to the client containing its own certificate.
+	\item[] \standout{SERVER\_HELLO} \emph{(signed)} The message sent by the
+		server to the client in response to a \code{CLIENT\_HELLO}
+		message. It contains the same username received in the
+		\code{CLIENT\_HELLO} message.
+	\item[] \standout{PLAYER\_LIST\_REQ} \emph{(encrypted)} This empty
+		message is sent by the client to the server when the client
+		wants to get the list of the currently logged-in players.
+	\item[] \standout{PLAYER\_LIST} \emph{(encrypted)} The reply message
+		from the server to the client containing the list of all the
+		users connected to the system.
+	\item[] \standout{CHALLENGE\_REQ} \emph{(encrypted)} The message sent
+		from a client to the server containing the username of the
+		challenged user.
+	\item[] \standout{CHALLENGE\_RES} \emph{(encrypted)} The message sent by
+		the challenged client to the server containing a boolean that it
+		is \emph{true} if the user has accepted the challenge.
+	\item[] \standout{CLIENT\_INFO} \emph{(encrypted)} The message sent by
+		the server to the parties that are starting a new game. It
+		contains the \emph{address}, the \emph{game port}, the
+		\emph{public key} of the peer and the nonce value to use in the
+		\textit{Diffie-Hellman} key exchange.
+	\item[] \standout{ERROR} The message sent from the server to a client
+		containig an error.
+\end{itemize}

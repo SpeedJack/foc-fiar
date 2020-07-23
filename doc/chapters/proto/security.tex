@@ -1,0 +1,54 @@
+\section{Security of the protocol}\label{sec:protosecurity}
+
+Signed and GCM encrypted messages require some attentions in order to avoid
+security flaws.
+
+GCM needs to be initialized with a key and an initialization vector (IV).
+Moreover, to be secure, the same IV must not be used more than once with the
+same key.
+
+The application we developed, derives the GCM key and the first IV using the
+secret shared with the algorithm described in \secref{sec:keyxchng}. The GCM key
+remains the same for the entire session, while the IV changes after every
+encryption/decryption of a message.
+
+The GCM key and the first IV are derived from the secret in this way: first, the
+shared secret is hashed using SHA-256; Then, the first 16 bytes of the hash are
+used as the GCM key while the last 12 bytes are used as the first IV (4 bytes
+are discarded).
+
+Then, after each message (either sent or received), a new IV is computed by
+doing the SHA-256 hash of a 20 bytes array constructed by concatenating:
+\begin{enumerate*}[label=\textnormal{\arabic*)}]
+	\item an incremental counter;
+	\item the previous IV\@;
+	\item the \code{nonce} field of the header of the last message received
+		or sent.
+\end{enumerate*}
+From the resulting hash the 12 bytes in the center (leaving 10 bytes to the left
+and 10 bytes to the right) are taken as the new IV\@.
+
+In this way the next IV can be deterministically derived from the previous IV\@.
+
+Regarding signed message, we need to adopt some additional protection against
+replay attacks. An attacker may record the messages exchanged between two
+parties \exgratia{the client and the server} and resend some of the recorded
+messages to one party in order to impersonate the other. In this case the
+receiver will consider the message valid, since it comes with a valid signature.
+
+As said before, the \code{nonce} field in the header ensure randomness in every
+message, but this is not sufficient: the nonce is not checked against a list of
+previously received nonces, so a replay attack will not be recognized (the
+\code{counter} field is used to avoid replay attacks only in a single session:
+it cannot prevent replays between two different sessions since when the
+application is restarted the counter is initialized back to \(1\)).
+
+To solve this issue, we have introduced the \code{prev\_hash} header field. This
+field must always contains the hash of the last received message. The sender of
+a message is sure about the freshness of the message he sent thanks to the
+\code{nonce} field. So, when he receives the next message, he is sure about the
+freshness of the \code{prev\_hash} field. This guarantees that the signed
+message is fresh.
+
+A formal description of the protocol, using BAN logic, is provided in the next
+section.

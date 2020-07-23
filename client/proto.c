@@ -46,6 +46,7 @@ bool proto_send_chall_res(PROTO_CTX *ctx, bool accept)
 
 PROTO_CTX *proto_connect_to_server(const char *addr, uint16_t port, EVP_PKEY *privkey, int ipv, int *sock)
 {
+	assert(addr && privkey && sock);
 	char service[6];
 	snprintf(service, 6, "%d", port);
 	struct addrinfo *serveraddr = net_getaddrinfo(addr, service,
@@ -84,6 +85,7 @@ struct client_info *proto_recv_client_info(PROTO_CTX *ctx)
 bool proto_chall(PROTO_CTX *ctx, const char *opponent,
 	struct client_info **infos)
 {
+	assert(opponent && infos);
 	*infos = NULL;
 	struct chall_req req;
 	memset(&req, 0, sizeof(struct chall_req));

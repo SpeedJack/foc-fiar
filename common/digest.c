@@ -9,6 +9,7 @@ struct digest_ctx {
 
 unsigned char *digest_sha256(const unsigned char *input, size_t len)
 {
+	assert(input);
 	unsigned char *hash = OPENSSL_malloc(SHA256_DIGEST_LENGTH);
 	if (!hash) {
 		REPORT_ERR(EALLOC, "Can not allocate space for the SHA-256 digest.");
@@ -70,7 +71,6 @@ bool digest_ctx_can_sign(DIGEST_CTX *ctx)
 
 void digest_ctx_free(DIGEST_CTX *ctx)
 {
-	/* EVP_PKEY_free(ctx->privkey); */
 	EVP_PKEY_free(ctx->peerkey);
 	OPENSSL_clear_free(ctx, sizeof(DIGEST_CTX));
 }

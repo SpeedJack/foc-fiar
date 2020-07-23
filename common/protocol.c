@@ -83,11 +83,13 @@ void proto_ctx_set_peerkey(PROTO_CTX *ctx, EVP_PKEY *peerkey)
 
 void proto_ctx_set_secret(PROTO_CTX *ctx, const unsigned char *secret)
 {
+	assert(ctx && secret);
 	ctx->gctx = gcm_ctx_new(secret);
 }
 
 void proto_clear_last_recv_msg(PROTO_CTX *ctx)
 {
+	assert(ctx);
 	if (!ctx->last_recv_msg)
 		return;
 	OPENSSL_clear_free(ctx->last_recv_msg,
@@ -173,6 +175,7 @@ static struct msg *craft_msg(PROTO_CTX *ctx, enum msg_type type,
 static void *encrypt_single_msg(PROTO_CTX *ctx, const struct msg *msg,
 	size_t len, size_t *outlen)
 {
+	assert(ctx && ctx->gctx && msg && outlen);
 	unsigned char tag[16];
 	unsigned char *ct = gcm_encrypt(ctx->gctx, (unsigned char *)msg, len, tag);
 	if (!ct)
@@ -312,6 +315,7 @@ bool proto_send_gcm(PROTO_CTX *ctx, enum msg_type type, const void *data, size_t
 
 bool proto_send(PROTO_CTX *ctx, enum msg_type type, const void *data, size_t len)
 {
+	assert(ctx);
 	if (ctx->gctx)
 		return proto_send_gcm(ctx, type, data, len);
 	if (digest_ctx_can_sign(ctx->dctx))
@@ -425,6 +429,7 @@ static struct msg_header *recv_msg_header(PROTO_CTX *ctx)
 
 static struct msg *recv_single_encrypted_msg(PROTO_CTX *ctx, size_t len)
 {
+	assert(ctx);
 	void *encrypted = OPENSSL_malloc(len);
 	if (!encrypted) {
 		REPORT_ERR(EALLOC, "Can not allocate space for the incoming encrypted message.");
@@ -532,6 +537,7 @@ static struct msg *recv_signed_msg(PROTO_CTX *ctx, size_t *len)
 static void *real_recv(PROTO_CTX *ctx, enum msg_type *type,
 	size_t *len, recv_fn *recv_impl)
 {
+	assert(ctx && type && recv_impl && len);
 	proto_clear_last_recv_msg(ctx);
 	struct msg *msg = recv_impl(ctx, len);
 	if (!msg)
@@ -558,6 +564,7 @@ void *proto_recv_gcm(PROTO_CTX *ctx, enum msg_type *type, size_t *len)
 
 void *proto_recv(PROTO_CTX *ctx, enum msg_type *type, size_t *len)
 {
+	assert(ctx);
 	if (ctx->gctx)
 		return proto_recv_gcm(ctx, type, len);
 	if (digest_ctx_can_verify(ctx->dctx))
@@ -567,6 +574,7 @@ void *proto_recv(PROTO_CTX *ctx, enum msg_type *type, size_t *len)
 
 static inline void *call_recv_by_type(PROTO_CTX *ctx, enum msg_type *type, size_t *len)
 {
+	assert(ctx && type);
 	switch(*type) {
 		case CLIENT_HELLO:
 		case SERVER_CERT:
@@ -589,6 +597,7 @@ static inline void *call_recv_by_type(PROTO_CTX *ctx, enum msg_type *type, size_
 
 void *proto_recv_msg_type(PROTO_CTX *ctx, enum msg_type type, size_t *len)
 {
+	assert(ctx);
 	size_t msglen;
 	enum msg_type recvtype = type;
 	void *data = call_recv_by_type(ctx, &recvtype, &msglen);
@@ -612,6 +621,7 @@ void *proto_recv_msg_type(PROTO_CTX *ctx, enum msg_type type, size_t *len)
 
 static bool send_dh_pubkey(PROTO_CTX *ctx, DH_CTX *dhctx, uint32_t *nonce)
 {
+	assert(ctx && dhctx && nonce);
 	if (*nonce == 0)
 		*nonce = random_nonce();
 	if (*nonce == 0)
@@ -632,6 +642,7 @@ static bool send_dh_pubkey(PROTO_CTX *ctx, DH_CTX *dhctx, uint32_t *nonce)
 
 static bool recv_dh_pubkey(PROTO_CTX *ctx, DH_CTX *dhctx, uint32_t *nonce)
 {
+	assert(ctx && dhctx && nonce);
 	size_t msglen;
 	struct dhkey *msg = (struct dhkey *)proto_recv_msg_type(ctx, DHKEY, &msglen);
 	if (!msg)
@@ -649,6 +660,7 @@ static bool recv_dh_pubkey(PROTO_CTX *ctx, DH_CTX *dhctx, uint32_t *nonce)
 
 bool proto_run_dh(PROTO_CTX *ctx, bool send_first, uint32_t nonce)
 {
+	assert(ctx);
 	dh_fn *first, *second;
 	if (send_first) {
 		first = send_dh_pubkey;
@@ -673,6 +685,7 @@ bool proto_run_dh(PROTO_CTX *ctx, bool send_first, uint32_t nonce)
 
 bool proto_send_error(PROTO_CTX *ctx, enum error_code code, const char *text)
 {
+	assert(ctx);
 	size_t msglen = sizeof(struct error) + (text ? strlen(text) : 0) + 1;
 	struct error *msg = OPENSSL_malloc(msglen);
 	if (!msg) {

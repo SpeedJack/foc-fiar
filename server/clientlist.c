@@ -46,6 +46,7 @@ struct client *clientlist_insert(struct client client)
 
 bool clientlist_register(struct client *client)
 {
+	assert(client);
 	if (*client->username == '\0') {
 		REPORT_ERR(EUNSPEC, "No username specified.");
 		return false;
@@ -154,6 +155,7 @@ struct client *clientlist_search(const char username[MAX_USERNAME_LEN + 1])
 
 int clientlist_getfdset(fd_set *set)
 {
+	assert(set);
 	int highest = 0;
 	FD_ZERO(set);
 	struct list_item *cur;
@@ -172,6 +174,7 @@ int clientlist_getfdset(fd_set *set)
 
 static void remove_item(struct list_item *item)
 {
+	assert(item);
 	struct list_item *cur;
 	list_for_each_entry(cur, &client_list, head)
 		if (cur->client.opponent == &item->client) {
@@ -187,6 +190,7 @@ static void remove_item(struct list_item *item)
 
 void clientlist_remove(struct client *client)
 {
+	assert(client);
 	struct list_item *cur;
 	list_for_each_entry(cur, &table[HASH(client->socket)], thead) {
 		if (&cur->client != client)
@@ -198,6 +202,7 @@ void clientlist_remove(struct client *client)
 
 static void clientlist_freelist(struct list_head *list)
 {
+	assert(list);
 	struct list_item *cur;
 	struct list_item *toremove = NULL;
 	list_for_each_entry(cur, list, head) {

@@ -131,6 +131,7 @@ void dh_ctx_free(DH_CTX *ctx)
 
 bool dh_ctx_set_peerkey(DH_CTX *ctx, unsigned char *peerkey, size_t len)
 {
+	assert(ctx && peerkey);
 	ctx->peerkey = pem_deserialize_pubkey(peerkey, len);
 	return !!ctx->peerkey;
 }

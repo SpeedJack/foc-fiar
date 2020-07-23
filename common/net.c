@@ -1,4 +1,5 @@
 #include "net.h"
+#include "assertions.h"
 #include "error.h"
 #include <netinet/in.h>
 #include <sys/types.h>
@@ -133,6 +134,7 @@ void net_set_nonblocking(bool noblock)
 
 static ssize_t recvfrom_noblock(int sockfd, void *buf, size_t len)
 {
+	assert(buf);
 	while (avail_bytes <= 0) {
 		ssize_t ret = recvfrom(sockfd, recv_buffer, RECV_BUFFER_SIZE, MSG_DONTWAIT, NULL, 0);
 		if (ret == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
@@ -151,6 +153,7 @@ static ssize_t recvfrom_noblock(int sockfd, void *buf, size_t len)
 
 bool net_recv(int socket, void *buf, size_t len)
 {
+	assert(buf);
 	size_t read = 0;
 	ssize_t ret;
 	while (read < len) {
@@ -178,6 +181,7 @@ bool net_recv(int socket, void *buf, size_t len)
 
 bool net_send(int socket, const void *buf, size_t len, struct addrinfo *info)
 {
+	assert(buf);
 	size_t sent = 0;
 	ssize_t ret;
 	while (sent < len) {

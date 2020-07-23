@@ -5,6 +5,8 @@
 #include <openssl/bio.h>
 #include <string.h>
 
+#define MAX_DUMP_SIZE (1<<16)
+
 static unsigned int malloc_count = 0;
 static unsigned int realloc_count = 0;
 static unsigned int free_count = 0;
@@ -66,8 +68,6 @@ void _memdbg_print_alloc_counts(void)
 	fprintf(stderr, "[MEMDBG] total_malloc = %u, total_realloc = %u, total_free = %u\n",
 		total_malloc, total_realloc, total_free);
 }
-
-#define MAX_DUMP_SIZE (1<<16)
 
 void _memdbg_dump(const char *id, const void *mem, size_t len)
 {

@@ -36,9 +36,6 @@ static const char *errstr[] = {
 	[EUNSPEC_P]	= "[EUNSPEC] Peer encountered an unexpected error."
 };
 
-/* TODO: create specific _P version of error codes for errors that need to be
- * sent over net. Add auto conversion between the 2 types of errors. */
-
 static int print_sslerror(const char *str, __attribute__((unused)) size_t len,
 	__attribute__((unused)) void *u)
 {

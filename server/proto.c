@@ -42,12 +42,14 @@ bool proto_send_hello(PROTO_CTX *ctx, const char *username)
 
 bool proto_send_player_list(PROTO_CTX *ctx, struct user_list *list)
 {
+	assert(list);
 	return proto_send_gcm(ctx, PLAYER_LIST, list,
 		sizeof(struct user_list) + list->count*sizeof(struct user));
 }
 
 bool proto_send_chall_req(PROTO_CTX *ctx, char *username)
 {
+	assert(username);
 	struct chall_req req;
 	memset(&req, 0, sizeof(struct chall_req));
 	strncpy(req.username, username, MAX_USERNAME_LEN);
@@ -65,6 +67,7 @@ bool proto_send_chall_res(PROTO_CTX *ctx, bool accept)
 bool proto_send_client_info(PROTO_CTX *ctx, const char *addr, uint16_t port,
 	EVP_PKEY *pkey, uint32_t nonce)
 {
+	assert(addr && pkey);
 	size_t keylen;
 	unsigned char *key = pem_serialize_pubkey(pkey, &keylen);
 	if (!key)

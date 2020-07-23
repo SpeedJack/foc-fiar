@@ -20,6 +20,7 @@ struct gcm_ctx {
 
 GCM_CTX *gcm_ctx_new(const unsigned char *secret)
 {
+	assert(secret);
 	GCM_CTX *ctx = OPENSSL_malloc(sizeof(GCM_CTX));
 	if (!ctx) {
 		REPORT_ERR(EALLOC, "Can not allocate space for GCM_CTX.");
@@ -42,11 +43,13 @@ void gcm_ctx_free(GCM_CTX *ctx)
 
 void gcm_ctx_set_nonce(GCM_CTX *ctx, uint32_t nonce)
 {
+	assert(ctx);
 	ctx->nonce = nonce;
 }
 
 static bool ctx_update(struct gcm_ctx *ctx, bool enc)
 {
+	assert(ctx);
 	if (ctx->enc_counter + ctx->dec_counter >= MAX_GCM_OPERATIONS) {
 		REPORT_ERR(ETOOMUCH, NULL);
 		return false;
@@ -74,6 +77,7 @@ static bool ctx_update(struct gcm_ctx *ctx, bool enc)
 
 unsigned char *gcm_encrypt(struct gcm_ctx *gctx, const unsigned char *pt, size_t len, unsigned char *tag)
 {
+	assert(gctx && tag);
 	if (!ctx_update(gctx, true))
 		return NULL;
 	unsigned char *ct = NULL;
@@ -121,6 +125,7 @@ clean_return_error:
 
 unsigned char *gcm_decrypt(struct gcm_ctx *gctx, const unsigned char *ct, size_t len, unsigned char *tag)
 {
+	assert(gctx && tag);
 	if (!ctx_update(gctx, false))
 		return NULL;
 	unsigned char *pt = NULL;

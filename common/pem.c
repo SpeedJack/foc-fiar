@@ -66,7 +66,6 @@ unsigned char *pem_serialize_pubkey(EVP_PKEY *key, size_t *len)
 	*len = BIO_get_mem_data(bio, &buf);
 	if (*len <= 0 || !buf) {
 		REPORT_ERR(EOSSL, "BIO_get_mem_data() failed.");
-		//OPENSSL_free(buf);
 		BIO_free(bio);
 		return NULL;
 	}
@@ -74,7 +73,6 @@ unsigned char *pem_serialize_pubkey(EVP_PKEY *key, size_t *len)
 	if (!pubkey)
 		REPORT_ERR(EALLOC, "Can not allocate space for the serialized public key.");
 	memcpy(pubkey, buf, *len);
-	//OPENSSL_free(buf);
 	BIO_free(bio);
 	return pubkey;
 }

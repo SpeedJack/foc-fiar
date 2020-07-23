@@ -63,6 +63,7 @@ char *x509_get_name_oneline(const X509 *cert)
 
 static bool x509_verify_name(const X509 *cert)
 {
+	assert(cert);
 	char *name = x509_get_name_oneline(cert);
 	memdbg_register_alloc(name, strlen(name) + 1);
 	if (!name)
@@ -76,6 +77,7 @@ static bool x509_verify_name(const X509 *cert)
 
 bool x509_store_init(const char *cafile, const char *crlfile)
 {
+	assert(cafile && crlfile);
 	ca_cert = pem_read_x509_file(cafile);
 	if (!ca_cert)
 		return false;

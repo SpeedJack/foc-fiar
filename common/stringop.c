@@ -8,6 +8,7 @@
 
 char *string_to_lower(char *str)
 {
+	assert(str);
 	for (char *c = str; *c != '\0'; c++)
 		*c = tolower(*c);
 	return str;

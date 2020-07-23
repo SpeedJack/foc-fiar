@@ -7,13 +7,13 @@
 #include "server/clientlist.h"
 #include "server/proto.h"
 #include "cout.h"
-#include "dirent.h"
 #include "error.h"
 #include "memdbg.h"
 #include "net.h"
 #include "pem.h"
 #include "random.h"
 #include "stringop.h"
+#include <dirent.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>

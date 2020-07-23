@@ -97,4 +97,8 @@ void _memdbg_register_alloc(const void *addr, size_t num, const char *file, int 
 		file, line, num, addr);
 }
 
+#else
+
+typedef int make_iso_compilers_happy;
+
 #endif /* ENABLE_MEMDBG */

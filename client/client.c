@@ -20,6 +20,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <netdb.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,6 +45,8 @@ struct config {
 	char ca_file[PATH_MAX];
 	char crl_file[PATH_MAX];
 };
+
+static const int signals[] = {SIGHUP, SIGINT, SIGTERM, 0};
 
 static int force_ipv;
 static int server_sock;
@@ -78,6 +81,25 @@ static inline void print_version(void)
 	puts(OPENSSL_VERSION_TEXT);
 }
 
+static void sighandler(__attribute__((unused)) int signum)
+{
+	cout_print_error("\nInterrupted! Exiting...");
+	EVP_PKEY_free(privkey);
+	x509_store_free();
+	proto_ctx_free(server_ctx);
+	exit(EXIT_SUCCESS);
+}
+
+static void sighandler_init(void)
+{
+	struct sigaction sa;
+	memset(&sa, 0, sizeof(struct sigaction));
+	sa.sa_handler = sighandler;
+	for (int i = 0; signals[i] > 0; i++)
+		if (sigaction(signals[i], &sa, NULL) == -1)
+			panic(strerror(errno));
+}
+
 static void print_cmd_help(void)
 {
 	puts("help\t\t- print this message.");
@@ -107,6 +129,7 @@ static void list_users(void)
 
 static void start_game(const char *opponent, struct client_info *infos, bool challenger)
 {
+	printf("Connecting with '%s'...\n", opponent);
 	struct game_info gameinfos;
 	strcpy(gameinfos.yourname, username);
 	strcpy(gameinfos.opponentname, opponent);
@@ -123,6 +146,7 @@ static void start_game(const char *opponent, struct client_info *infos, bool cha
 	gameinfos.ipv = force_ipv;
 	gameinfos.challenger = challenger;
 	game_start(gameinfos);
+	sighandler_init();
 	if (!proto_send_game_end(server_ctx))
 		error_print();
 }
@@ -226,10 +250,8 @@ static void repl(void)
 		FD_SET(STDIN_FILENO, &readset);
 		int nfds = (server_sock > STDIN_FILENO ? server_sock : STDIN_FILENO) + 1;
 		int ready = select(nfds, &readset, NULL, NULL, NULL);
-		if (ready == -1 && errno == EINTR) {
-			cout_print_error("Interrupted!");
+		if (ready == -1 && errno == EINTR)
 			return;
-		}
 		if (ready == -1) {
 			REPORT_ERR(ENET, "select() returned -1.");
 			error_print();
@@ -345,11 +367,13 @@ static void init_session(struct config cfg)
 		privkey = load_user_privkey(cfg.privkey_file);
 		if (!privkey)
 			break;
+		puts("\nLogging in...");
 		server_ctx = proto_connect_to_server(cfg.server_addr,
 			cfg.server_port, privkey, cfg.force_ipv, &server_sock);
 		if (!server_ctx || !do_hello() || !proto_run_dh(server_ctx, true, 0))
 			break;
 		x509_store_free();
+		puts("Successfully connected to the server!");
 		return;
 	} while(0);
 
@@ -430,6 +454,7 @@ int main(int argc, char **argv)
 			argv[optind], argv[0]);
 
 	force_ipv = cfg.force_ipv;
+	sighandler_init();
 	init_session(cfg);
 	repl();
 	EVP_PKEY_free(privkey);

@@ -15,6 +15,7 @@
 #include "stringop.h"
 #include <dirent.h>
 #include <errno.h>
+#include <signal.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -43,6 +44,8 @@ struct config {
 	char cert_file[PATH_MAX];
 	char privkey_file[PATH_MAX];
 };
+
+static const int signals[] = {SIGHUP, SIGINT, SIGTERM, 0};
 
 static int listen_sock;
 static X509 *server_cert;
@@ -299,10 +302,8 @@ static void server_loop(void)
 		FD_SET(listen_sock, &readset);
 		nfds = (listen_sock > nfds ? listen_sock : nfds) + 1;
 		int ready = select(nfds, &readset, NULL, NULL, NULL);
-		if (ready == -1 && errno == EINTR) {
-			cout_print_error("Interrupted!");
+		if (ready == -1 && errno == EINTR)
 			return;
-		}
 		if (ready == -1) {
 			REPORT_ERR(ENET, "select() returned -1.");
 			error_print();
@@ -323,6 +324,26 @@ static void server_loop(void)
 			process_request(client);
 		}
 	}
+}
+
+static void sighandler(int signum)
+{
+	cout_printf_error("\nReceived signal: %d. Exiting...\n", signum);
+	EVP_PKEY_free(privkey);
+	clientlist_free();
+	X509_free(server_cert);
+	close(listen_sock);
+	exit(EXIT_SUCCESS);
+}
+
+static void sighandler_init(void)
+{
+	struct sigaction sa;
+	memset(&sa, 0, sizeof(struct sigaction));
+	sa.sa_handler = sighandler;
+	for (int i = 0; signals[i] > 0; i++)
+		if (sigaction(signals[i], &sa, NULL) == -1)
+			panic(strerror(errno));
 }
 
 static bool init(struct config cfg)
@@ -349,6 +370,7 @@ static bool init(struct config cfg)
 		return false;
 	}
 	clientlist_init();
+	sighandler_init();
 	return true;
 }
 

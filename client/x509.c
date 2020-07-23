@@ -114,10 +114,13 @@ void x509_store_free(void)
 {
 	if (store)
 		X509_STORE_free(store);
+	store = NULL;
 	if (ca_cert)
 		X509_free(ca_cert);
+	ca_cert = NULL;
 	if (crl)
 		X509_CRL_free(crl);
+	crl = NULL;
 }
 
 bool x509_verify(X509 *cert)

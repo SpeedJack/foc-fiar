@@ -57,7 +57,7 @@ int cin_read_uint(void)
 {
 	char buf[5];
 	int res = -1;
-	do {
+	while(true) {
 		int len = cin_read_line(buf, 5);
 		if (len < 0) {
 			cout_print_error("Reached EOF.");
@@ -73,7 +73,8 @@ int cin_read_uint(void)
 			cout_print_error("Inserted value must be positive.");
 			continue;
 		}
-	} while (false);
+		break;
+	}
 	return res;
 }
 

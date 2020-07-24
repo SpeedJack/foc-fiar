@@ -9,7 +9,7 @@
 #include <openssl/pem.h>
 
 struct dh_ctx {
-	EVP_PKEY *privkey;
+	EVP_PKEY *pubkey;
 	EVP_PKEY *peerkey;
 };
 
@@ -72,7 +72,7 @@ DH_CTX *dh_ctx_new(void)
 		REPORT_ERR(EALLOC, "Can not allocate space for DH_CTX.");
 		return NULL;
 	}
-	ctx->privkey = NULL;
+	ctx->pubkey = NULL;
 	ctx->peerkey = NULL;
 	return ctx;
 }
@@ -101,19 +101,19 @@ unsigned char *dh_gen_pubkey(DH_CTX *dhctx, size_t *len)
 		REPORT_ERR(EOSSL, "EVP_PKEY_CTX_new() returned NULL.");
 		goto clean_return_error;
 	}
-	EVP_PKEY *privkey = NULL;
+	EVP_PKEY *pubkey = NULL;
 	if (EVP_PKEY_keygen_init(ctx) != 1) {
 		REPORT_ERR(EOSSL, "EVP_PKEY_keygen_init() failed.");
 		goto clean_return_error;
 	}
-	if (EVP_PKEY_keygen(ctx, &privkey) != 1) {
+	if (EVP_PKEY_keygen(ctx, &pubkey) != 1) {
 		REPORT_ERR(EOSSL, "EVP_PKEY_keygen() failed.");
 		goto clean_return_error;
 	}
 	EVP_PKEY_free(dh_params);
 	EVP_PKEY_CTX_free(ctx);
-	dhctx->privkey = privkey;
-	return pem_serialize_pubkey(privkey, len);
+	dhctx->pubkey = pubkey;
+	return pem_serialize_pubkey(pubkey, len);
 clean_return_error:
 	EVP_PKEY_free(dh_params);
 	EVP_PKEY_CTX_free(ctx);
@@ -124,7 +124,7 @@ clean_return_error:
 
 void dh_ctx_free(DH_CTX *ctx)
 {
-	EVP_PKEY_free(ctx->privkey);
+	EVP_PKEY_free(ctx->pubkey);
 	EVP_PKEY_free(ctx->peerkey);
 	OPENSSL_clear_free(ctx, sizeof(DH_CTX));
 }
@@ -141,7 +141,7 @@ unsigned char *dh_derive_secret(DH_CTX *dhctx)
 	assert(dhctx);
 	EVP_PKEY_CTX *ctx = NULL;
 	unsigned char *secret = NULL;
-	ctx = EVP_PKEY_CTX_new(dhctx->privkey, NULL);
+	ctx = EVP_PKEY_CTX_new(dhctx->pubkey, NULL);
 	if (!ctx) {
 		REPORT_ERR(EOSSL, "EVP_PKEY_CTX_new() returned NULL.");
 		goto clean_return_error;

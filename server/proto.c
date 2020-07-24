@@ -4,11 +4,6 @@
 #include "pem.h"
 #include <string.h>
 
-struct client_hello *proto_recv_hello(PROTO_CTX *ctx)
-{
-	return (struct client_hello *)proto_recv_msg_type(ctx, CLIENT_HELLO, NULL);
-}
-
 bool proto_send_cert(PROTO_CTX *ctx, X509 *cert)
 {
 	assert(cert);

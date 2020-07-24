@@ -5,7 +5,6 @@
 #include "messages.h"
 #include "protocol.h"
 
-extern struct client_hello *proto_recv_hello(PROTO_CTX *ctx);
 extern bool proto_send_cert(PROTO_CTX *ctx, X509 *cert);
 extern bool proto_send_hello(PROTO_CTX *ctx, const char *username);
 extern bool proto_send_player_list(PROTO_CTX *ctx, struct user_list *list);

@@ -124,8 +124,24 @@ clean_return:
 	client->in_game = false;
 }
 
+static bool valid_username(const char *username)
+{
+	size_t len = strlen(username);
+	if (len == 0 || len > MAX_USERNAME_LEN)
+		return false;
+	for (const char *c = username; *c != '\0'; c++)
+		if (!strchr(USERNAME_ALLOWED_CHARS, *c))
+			return false;
+	return true;
+}
+
 static void process_challenge_req(struct client *client, struct chall_req *creq)
 {
+	if (!valid_username(creq->username)) {
+		if (proto_send_error(client->ctx, EINVMSG, "Invalid username."))
+			error_print();
+		return;
+	}
 	if (client->opponent || client->in_game) {
 		if (!proto_send_error(client->ctx, EINVMSG_P, "You are already in a game."))
 			error_print();
@@ -164,17 +180,6 @@ static void process_player_list_req(struct client *client)
 	if (!proto_send_player_list(client->ctx, ul))
 		clientlist_remove(client);
 	OPENSSL_free(ul);
-}
-
-static bool valid_username(const char *username)
-{
-	size_t len = strlen(username);
-	if (len == 0 || len > MAX_USERNAME_LEN)
-		return false;
-	for (const char *c = username; *c != '\0'; c++)
-		if (!strchr(USERNAME_ALLOWED_CHARS, *c))
-			return false;
-	return true;
 }
 
 static void process_hello(struct client *client, struct client_hello *hello)
@@ -369,6 +374,7 @@ static bool init(struct config cfg)
 		EVP_PKEY_free(privkey);
 		return false;
 	}
+	printf("Server listening on %d.\n", cfg.port);
 	clientlist_init();
 	sighandler_init();
 	return true;

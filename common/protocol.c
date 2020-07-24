@@ -607,6 +607,10 @@ void *proto_recv_msg_type(PROTO_CTX *ctx, enum msg_type type, size_t *len)
 		if (recvtype == ERROR) {
 			struct error *msg = (struct error *)data;
 			error_clear();
+			if (msglen != sizeof(enum error_code) + strlen(msg->message) + 1) {
+				REPORT_ERR(EINVMSG, "Received an invalid error message.");
+				return NULL;
+			}
 			REPORT_ERR(msg->code, msg->message);
 		} else {
 			REPORT_ERR(EINVMSG, "Received an invalid message type.");
@@ -647,6 +651,10 @@ static bool recv_dh_pubkey(PROTO_CTX *ctx, DH_CTX *dhctx, uint32_t *nonce)
 	struct dhkey *msg = (struct dhkey *)proto_recv_msg_type(ctx, DHKEY, &msglen);
 	if (!msg)
 		return false;
+	if (msg->len != msglen - sizeof(struct dhkey)) {
+		REPORT_ERR(EINVMSG, "Invalid key length.");
+		return false;
+	}
 	if (*nonce == 0) {
 		*nonce = msg->nonce;
 	} else if (msg->nonce != *nonce) {

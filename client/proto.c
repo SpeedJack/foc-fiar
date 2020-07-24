@@ -23,6 +23,10 @@ X509 *proto_recv_cert(PROTO_CTX *ctx)
 		SERVER_CERT, &msglen);
 	if (!msg)
 		return NULL;
+	if (msg->len != msglen - sizeof(uint32_t)) {
+		REPORT_ERR(EINVMSG, "Invalid certificate length.");
+		return NULL;
+	}
 	X509* cert = x509_deserialize(msg->cert, (size_t)msg->len);
 	return cert;
 }
@@ -78,7 +82,15 @@ struct user_list *proto_ask_player_list(PROTO_CTX *ctx)
 
 struct client_info *proto_recv_client_info(PROTO_CTX *ctx)
 {
-	return (struct client_info *)proto_recv_msg_type(ctx, CLIENT_INFO, NULL);
+	size_t msglen;
+	struct client_info *infos = (struct client_info *)proto_recv_msg_type(ctx, CLIENT_INFO, &msglen);
+	if (!infos)
+		return NULL;
+	if (infos->keylen != msglen - sizeof(struct client_info)) {
+		REPORT_ERR(EINVMSG, "Invalid key length.");
+		return NULL;
+	}
+	return infos;
 
 }
 

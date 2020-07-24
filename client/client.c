@@ -210,6 +210,10 @@ static void process_server_msg(void)
 		error_print();
 		return;
 	}
+	if (strlen(infos->address) > ADDRSTRLEN - 1) {
+		cout_print_error("Invalid address size in CLIENT_INFO.");
+		return;
+	}
 	start_game(opponent, infos, false);
 }
 
@@ -305,7 +309,7 @@ static bool do_hello(void)
 		return false;
 	proto_ctx_set_peerkey(server_ctx, serverkey);
 	struct server_hello *hello = proto_recv_hello(server_ctx);
-	if (!hello)
+	if (!hello || strncmp(username, hello->peer_username, MAX_USERNAME_LEN) != 0)
 		return false;
 	return true;
 }

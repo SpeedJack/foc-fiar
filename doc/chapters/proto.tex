@@ -22,31 +22,33 @@ and receive three different type of messages:
 \end{enumerate}
 
 All the messages exchanged by the application, regardless of their type, are
-prefixed with the header shown in~\lstref{lst:msgheader}.
+prefixed with the header, of a total size of 49 bytes, shown
+in~\lstref{lst:msgheader}.
 
 \lstinputlisting[language=c, label={lst:msgheader}, caption={Header prefixed to
 each message of the application}]{msgheader.c}
 
 Here, we describe each field of the header and their use:
 \begin{itemize}
-	\item[\standout{magic}] A magic number, always equal to \code{0xDECODE}.
-		It is used to ensure that the received message has a valid
-		header;
-	\item[\standout{counter}] An incremental message counter. It starts from
-		\(1\) and it's incremented for each message sent. It is used to
-		avoid replay attacks;
-	\item[\standout{type}] The message type, used to convert the payload to
-		the correct data structure;
-	\item[\standout{payload\_size}] Total payload size. For the usage of
-		this field, see below;
-	\item[\standout{nonce}] A random 4 bytes integer. It is use manly to add
-		randomness to the message (why this is useful is explained in
-		\secref{sec:keyxchng}. It is also used (among other variables) to derive a new
-		initialization vector for GCM after each message exchanged (see
-		\secref{sec:protosecurity} for details);
-	\item[\standout{prev\_hash}] SHA-256 hash of the last received message.
-		This is used for the security of signed messages. See
-		\secref{sec:protosecurity} for details.
+	\item[\standout{magic}] \emph{(4 bytes)} A magic number, always equal to
+		\code{0xDECODE}.  It is used to ensure that the received message
+		has a valid header;
+	\item[\standout{counter}] \emph{(4 bytes)} An incremental message
+		counter. It starts from \(1\) and it's incremented for each
+		message sent. It is used to avoid replay attacks;
+	\item[\standout{type}] \emph{(1 byte)} The message type, used to convert
+		the payload to the correct data structure;
+	\item[\standout{payload\_size}] \emph{(4 bytes)} Total payload size. For
+		the usage of this field, see below;
+	\item[\standout{nonce}] \emph{(4 bytes)} A random 4 bytes integer. It is
+		use manly to add randomness to the message (why this is useful
+		is explained in \secref{sec:keyxchng}. It is also used (among
+		other variables) to derive a new initialization vector for GCM
+		after each message exchanged (see \secref{sec:protosecurity} for
+		details);
+	\item[\standout{prev\_hash}] \emph{(32 bytes)}SHA-256 hash of the last
+		received message.  This is used for the security of signed
+		messages. See \secref{sec:protosecurity} for details.
 \end{itemize}
 
 Before GCM initialization the receiver can extract the total length of any
@@ -56,6 +58,9 @@ then read the entire payload of size equal to \code{header.payload\_size}.
 In case of signed messages, after the message (with header and payload), the
 sender appends a 4 byte integer, which represents the size of the signature, and
 the signature.
+
+In case of GCM encrypted messages, the GCM tag (with a fixed size of 16 bytes)
+is appended after the message.
 
 After GCM initialization, since the messages are encrypted, there is no way for
 the receiver to extract the header without knowing \emph{a priori} the size of

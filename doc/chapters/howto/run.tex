@@ -1,3 +1,41 @@
 \section{Run the application}\label{appendix:howtorun}
 
-\ldots
+Compiled binaries will be placed under the \code{server} and \code{client}
+directory.
+
+To start the server:
+\begin{verbatim}
+$ cd server && ./server
+\end{verbatim}
+
+To run the client:
+\begin{verbatim}
+$ cd client && ./client
+\end{verbatim}
+
+When running multiple clients on the same machine, use the \code{-l} option to
+specify a different game port for each client.
+
+The server needs to find all the users' public keys in a single folder. By
+default, it tries to find the keys in a folder named \code{users} in the current
+working directory. The folder path can be changed with the \code{-d} option.
+
+The client needs to find the user's private key in a file named
+\code{<username>.pem}. Alternatively, a different file can be specified with the
+\code{-k} option.
+
+The \code{server} and \code{client} folders already contains all the needed
+files at their default location, so there should not be the need to pass any
+option to the programs. The following pairs of usernames and (very secure)
+passwords can be used for testing:
+\begin{verbatim}
+Alice:password
+Bob:password
+Carol:password
+Daenerys:password
+Erin:password
+Frank:password
+\end{verbatim}
+
+Other command line options are available for both the client and the server. To
+print the help message, use the \code{-h} option.

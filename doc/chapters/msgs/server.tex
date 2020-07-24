@@ -11,6 +11,9 @@
 		server to the client in response to a \code{CLIENT\_HELLO}
 		message. It contains the same username received in the
 		\code{CLIENT\_HELLO} message.
+	\item[] \standout{DHKEY} \emph{(signed)} The message sent by the client
+		to the server and vice versa that contains the
+		\emph{Diffie-Hellman} public key used to derive a shared secret.
 	\item[] \standout{PLAYER\_LIST\_REQ} \emph{(encrypted)} This empty
 		message is sent by the client to the server when the client
 		wants to get the list of the currently logged-in players.
@@ -28,6 +31,8 @@
 		contains the \emph{address}, the \emph{game port}, the
 		\emph{public key} of the peer and the nonce value to use in the
 		\textit{Diffie-Hellman} key exchange.
-	\item[] \standout{ERROR} The message sent from the server to a client
-		containig an error.
+	\item[] \standout{GAME\_END} \emph{(encrypted)} The message sent by the
+		client to the server when the game in which he was engaged ends.
+	\item[] \standout{ERROR} The message sent from the server to a client or
+		vice versa containing an error code and an error message.
 \end{itemize}

@@ -36,7 +36,7 @@ parties \exgratia{the client and the server} and resend some of the recorded
 messages to one party in order to impersonate the other. In this case the
 receiver will consider the message valid, since it comes with a valid signature.
 
-As said before, the \code{nonce} field in the header ensure randomness in every
+As said before, the \code{nonce} field in the header ensures randomness in every
 message, but this is not sufficient: the nonce is not checked against a list of
 previously received nonces, so a replay attack will not be recognized (the
 \code{counter} field is used to avoid replay attacks only in a single session:

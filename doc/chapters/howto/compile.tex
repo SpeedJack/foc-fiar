@@ -1,3 +1,24 @@
 \section{Compile sources}\label{appendix:howtocompile}
 
-\ldots
+First configure the source:
+\begin{verbatim}
+$ ./configure
+\end{verbatim}
+
+The configure script accepts the following options:
+\begin{itemize}
+	\item[] \code{-{}-disable-colors}: disable colored output (used to print
+		errors in red and to color the game board).  Useful if the
+		terminal does not support colors;
+	\item[] \code{-{}-enable-warnings}: pass the \code{-Wall} and
+		\code{-Wextra} options to the compiler;
+	\item[] \code{-{}-enable-assertions}: enable assertions in code;
+	\item[] \code{-{}-enable-memdbg}: enable the \code{MEMDBG} module. Note
+		that enabling this will make the output of the programs very
+		verbose.
+\end{itemize}
+
+When the source is configured, it can be compiled:
+\begin{verbatim}
+$ make
+\end{verbatim}

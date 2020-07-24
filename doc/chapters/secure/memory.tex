@@ -1,10 +1,21 @@
 \section{Memory management}\label{sec:memory}
 
-\ldots TODO \ldots
+In this section we describe how we manage the data in memory in the application.
 
 \subsubsection{Heap allocation}
 
-\ldots TODO \ldots
+The \code{OPENSSL\_malloc} function is always used to allocate memory on the
+heap. The memory is freed always through the \code{OPENSSL\_\{,clear\_\}free}
+functions. A lot of function (especially in the common library's modules)
+returns pointers to heap allocated memory. Some requires that the caller frees
+the memory; others automatically handle the freeing of the memory through a
+customized \code{free} function.
+
+We checked that the application correctly frees all the allocated memory when it
+is not used anymore using the \code{MEMDBG} module. Also, Valgrind with the
+memcheck tool has been used in order to spot and remove memory leaks, memory
+access errors and to ensure that any file descriptor is closed when the
+application exits.
 
 \subsubsection{Secure memory erasing}
 

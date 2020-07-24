@@ -52,7 +52,7 @@ if test "x$latexdoc" = "xyes"; then
 	AC_LATEX_PACKAGE_AMSMATH
 	AC_LATEX_PACKAGES_REQUIRE([babel, inputenc, lmodern, csquotes,
 		microtype, geometry, etoolbox, suffix, minibox, pdflscape,
-		xcolor, graphicx, titlesec, caption, interval, array,
+		xcolor, graphicx, titlesec, caption, amsfonts, interval, array,
 		makecell, enumitem, listings, nameref, varioref, hyperref,
 		biblatex])
 fi

@@ -1,10 +1,26 @@
 \chapter{Secure coding}\label{ch:secure}
 
-\ldots
+The application has been compiled with all compiler warnings enabled by passing
+the \code{-Wall -Wextra} options to the compiler. Also, the \code{-Wpedantic}
+option has been used to ensure the code is \emph{ISO C} compliant. No warnings
+are reported by the compiler. Compiler warnings can be enabled when configuring
+the source by passing the \code{-{}-enable-warnings} option to the
+\code{configure} script, as explained in~\appendixref{appendix:howtocompile}.
 
-\input{secure/warnings}
-\input{secure/asserts}
+In various parts of the code, we used the \code{assert} macro to check for the
+correctness of the execution. This is manly used to check that functions are
+called with all the required parameters and that some functions return the
+expected values. Assertions can be enabled when configuring the source by
+passing the \code{-{}-enable-assertions} to the \code{configure} script, as
+explained in \appendixref{appendix:howtocompile}.
+
+Malformed messages are handled through the \code{magic} header field. Also
+checks over other header fields are performed \exgratia{maximum payload size,
+valid counter, \etc}. Every string in the messages are of fixed length (except
+for PEM serialized data, for which a \code{len} field is added to the message):
+if not null-terminated, the terminator will be added by the receiver.
+
+Also malformed inputs in the client application are handler by the \code{cin}
+module.
+
 \input{secure/memory}
-\input{secure/msgs}
-\input{secure/proto}
-\input{secure/tests}

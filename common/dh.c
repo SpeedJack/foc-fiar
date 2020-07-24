@@ -175,6 +175,7 @@ unsigned char *dh_derive_secret(DH_CTX *dhctx)
 	return hash;
 clean_return_error:
 	EVP_PKEY_CTX_free(ctx);
-	OPENSSL_free(secret);
+	if (secret)
+		OPENSSL_clear_free(secret, secretlen);
 	return NULL;
 }

@@ -64,7 +64,7 @@ static bool ctx_update(struct gcm_ctx *ctx, bool enc)
 	memcpy(input + sizeof(uint32_t) + sizeof(ctx->iv), &ctx->nonce, sizeof(uint32_t));
 	unsigned char *hash = digest_sha256(input, sizeof(ctx->iv) + 2*sizeof(uint32_t));
 	if (!hash) {
-		OPENSSL_free(input);
+		OPENSSL_clear_free(input, sizeof(ctx->iv) + 2*sizeof(uint32_t));
 		return false;
 	}
 	memcpy(ctx->iv, &hash[10], sizeof(ctx->iv));
@@ -166,7 +166,7 @@ unsigned char *gcm_decrypt(struct gcm_ctx *gctx, const unsigned char *ct, size_t
 	return pt;
 clean_return_error:
 	if (pt)
-		OPENSSL_free(pt);
+		OPENSSL_clear_free(pt, len);
 	EVP_CIPHER_CTX_free(ctx);
 	return NULL;
 }

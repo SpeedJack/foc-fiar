@@ -695,6 +695,6 @@ bool proto_send_error(PROTO_CTX *ctx, enum error_code code, const char *text)
 	msg->code = code;
 	strcpy(msg->message, text ? text : "");
 	bool res = proto_send(ctx, ERROR, msg, msglen);
-	OPENSSL_free(msg);
+	OPENSSL_clear_free(msg, msglen);
 	return res;
 }

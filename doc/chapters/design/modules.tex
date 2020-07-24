@@ -10,7 +10,25 @@ the code can be found in the \code{common} folder.
 
 \subsubsection{Protocol}
 
-\ldots TODO \ldots
+This module implements the protocol of the application. It contains functions to
+send and receive plain, signed or GCM encrypted messages
+(\code{proto\_{send,recv}\_*}). It also has a function to automatically
+determine the format of the message to send (\code{proto\_send}) or receive
+(\code{proto\_recv} and \code{proto\_recv\_msg\_type}).
+
+The \code{proto\_verify\_last\_msg} allows to first read a received signed
+message and verify the signature afterwards (used by the server when it receives
+the first message from the client).
+
+The module also implements the Diffie-Hellman algorithm (using the \code{DH}
+module).
+
+This module also defines the \code{PROTO\_CTX} type, that is used to maintain
+various informations about the current state of the protocol. Note that this
+structure also maintain a pointer to the last received message and the memory
+allocated for this message is automatically freed when the application
+send/receive the next message (or when the application closes). This saves the
+caller the work to free the memory allocated for received messages.
 
 \subsubsection{Networking}
 

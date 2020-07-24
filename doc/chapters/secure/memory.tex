@@ -19,4 +19,11 @@ application exits.
 
 \subsubsection{Secure memory erasing}
 
-\ldots TODO \ldots
+The application has been compiled using the \code{-{}-fno-builtin-memset} option
+to instruct the compiler to not optimize out the calls to \code{memset} when
+used to clear sensitive data.
+
+More often, the \code{OPENSSL\_clear\_free} function is used.
+
+Only memory areas that contains sensitive data \exgratia{plaintext of ciphered
+messages; shared secrets; private keys; GCM key and IV\@; \etc} is cleared.

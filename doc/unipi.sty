@@ -19,6 +19,8 @@
 % TODO: add option to enable/disable caption formatting
 \RequirePackage[font=small,labelfont=bf,position=bottom]{caption}
 \RequirePackage{amsmath}
+\RequirePackage{amsfonts}
+\RequirePackage{mathtools}
 \RequirePackage{interval}
 \RequirePackage{array}
 \RequirePackage{makecell}
@@ -187,6 +189,20 @@
 }
 
 \lstset{style=ccode}
+
+\DeclareMathOperator{\sends}{\rightarrow}
+\DeclareMathOperator{\believes}{\mid\equiv}
+\DeclareMathOperator{\sees}{\triangleleft}
+\DeclareMathOperator{\oncesaid}{\mid\sim}
+\DeclareMathOperator{\controls}{\Rightarrow}
+\DeclareMathOperator{\hash}{H}
+\newcommand{\fresh}[1]{\#\left(#1\right)}
+\newcommand{\combine}[2]{{\left\langle #1 \right\rangle}_{#2}}
+\newcommand{\encrypt}[2]{{\left\{#1\right\}}_{#2}}
+\newcommand{\sign}[2]{{\left\{#1\right\}}_{#2^{-1}}}
+\newcommand{\sharedkey}[1]{\xleftrightarrow{#1}}
+\newcommand{\pubkey}[1]{\xmapsto{#1}}
+\newcommand{\secret}[1]{\xleftrightharpoons{#1}}
 
 \institute{University of Pisa}
 

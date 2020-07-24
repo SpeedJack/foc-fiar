@@ -50,5 +50,8 @@ a message is sure about the freshness of the message he sent thanks to the
 freshness of the \code{prev\_hash} field. This guarantees that the signed
 message is fresh.
 
+Since those fields are also included in GCM encrypted messages, they also ensure
+the freshness of an encrypted message.
+
 A formal description of the protocol, using BAN logic, is provided in the next
 section.

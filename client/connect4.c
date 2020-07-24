@@ -183,28 +183,3 @@ enum c4_result c4_insert(int c)
 	switch_player();
 	return c4_board_full() ? OK_FULL_BOARD : OK;
 }
-
-/*
- * Removes a disc from the specified column. This also switches back the current
- * player. Returns true if the disc has been successfully removed; false
- * otherwise.
- */
-bool c4_remove(int c)
-{
-	if (total_inserts == 0)
-		return false;
-	c--;
-
-	int r;
-	for (r = 0; r < BOARD_ROWS; ++r)
-		if (board[r][c] != EMPTY) {
-			board[r][c] = EMPTY;
-			break;
-		}
-	if (r == BOARD_ROWS)
-		return false;
-
-	total_inserts--;
-	switch_player();
-	return true;
-}

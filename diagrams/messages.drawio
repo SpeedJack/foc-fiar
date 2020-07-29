@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2020-07-29T09:42:51.159Z" agent="5.0 (X11)" etag="8wr05S8EAilkf4fGqTB3" version="13.5.4" type="github" pages="12">
+<mxfile host="app.diagrams.net" modified="2020-07-29T09:47:35.387Z" agent="5.0 (X11)" etag="6GtFFOncSp96lzozQwwV" version="13.5.4" type="github" pages="12">
   <diagram id="oPIUOyMkHPtXnBDL8dts" name="Header">
     <mxGraphModel dx="945" dy="434" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="690" pageHeight="980" math="0" shadow="0">
       <root>
@@ -864,6 +864,15 @@
         </mxCell>
         <mxCell id="wgSD-Mc-m6Yiu3TwuoUZ-2" value="in game&lt;br&gt;&lt;b&gt;true&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontStyle=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="vTldv3yz8GFK9hyFCu6P-1">
           <mxGeometry x="120" y="300" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yp9sKCg27YSLK35m8ES3-0" value="In reality, if the total message size is greater than 128 (0x80) bytes, the message is split into 2 messages: the first of 128 bytes, and the second of size (header_size + remaining_payload) " style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;" vertex="1" parent="vTldv3yz8GFK9hyFCu6P-1">
+          <mxGeometry x="40" y="490" width="520" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="Yp9sKCg27YSLK35m8ES3-1" value="" style="edgeStyle=segmentEdgeStyle;endArrow=classic;html=1;fontSize=14;entryX=0.25;entryY=1;entryDx=0;entryDy=0;exitX=0;exitY=0.25;exitDx=0;exitDy=0;" edge="1" parent="vTldv3yz8GFK9hyFCu6P-1" source="Yp9sKCg27YSLK35m8ES3-0" target="Ko6oiBmitg9VNKuJAvsS-0">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="50" y="620" as="sourcePoint" />
+            <mxPoint x="100" y="570" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
       </root>
     </mxGraphModel>
